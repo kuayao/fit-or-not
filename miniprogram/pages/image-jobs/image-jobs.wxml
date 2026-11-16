@@ -1,0 +1,31 @@
+<view class="page">
+  <view wx:for="{{imports}}" wx:key="id" class="import-job" data-id="{{item.id}}" bindtap="onImport"><image class="import-job__image" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" /><view class="grow"><view>{{item.name || (item.mode === 'set' ? '套装录入' : '单件录入')}}</view><view class="form-hint">{{item.itemCount ? item.itemCount + ' 件 · ' : ''}}{{item.statusText}}</view></view><image class="icon icon--small" src="/assets/icons/chevron.svg" /></view>
+  <view wx:if="{{total}}" class="jobs-heading"><text class="jobs-heading__count">{{total}} 项</text></view>
+  <view wx:if="{{error}}" class="error" bindtap="onRetry">{{error}} · 点击重试</view>
+  <view wx:for="{{jobs}}" wx:key="id" class="job-card" data-id="{{item.id}}" bindtap="onJob">
+    <view class="job-card__image">
+      <image wx:if="{{item.resultUrl || item.imageUrl}}" class="job-card__garment" src="{{item.resultUrl || item.imageUrl}}" data-url="{{item.resultUrl || item.imageUrl}}" binderror="onImageError" mode="aspectFit" />
+      <view class="job-card__badges">
+        <view class="job-card__steps">
+          <view wx:if="{{item.recognitionText}}" class="job-card__tag {{item.result.steps.recognition.status === 'failed' ? 'job-card__tag--warning' : ''}}" aria-label="资料{{item.recognitionText}}">
+            <text>资料</text>
+            <image wx:if="{{item.result.steps.recognition.status === 'succeeded'}}" class="job-card__step-icon" src="/assets/icons/check.svg" mode="aspectFit" />
+            <text wx:else class="job-card__step-text">{{item.recognitionText}}</text>
+          </view>
+          <view wx:if="{{item.cutoutText}}" class="job-card__tag {{item.result.steps.cutout.status === 'failed' ? 'job-card__tag--warning' : ''}}" aria-label="抠图{{item.cutoutText}}">
+            <text>抠图</text>
+            <image wx:if="{{item.result.steps.cutout.status === 'succeeded'}}" class="job-card__step-icon" src="/assets/icons/check.svg" mode="aspectFit" />
+            <text wx:else class="job-card__step-text">{{item.cutoutText}}</text>
+          </view>
+        </view>
+        <view class="job-card__status {{item.status === 'failed' || item.result.outcome === 'partial' ? 'job-card__status--warning' : ''}}">
+          <view class="job-card__status-dot {{item.pending ? 'job-card__status-dot--pending' : ''}}"></view>
+          <text>{{item.statusText}}</text>
+        </view>
+      </view>
+    </view>
+    <view class="job-card__name">{{item.clothingName || (item.kind === 'outfit-cover' ? '搭配封面' : '待识别衣物')}}</view>
+  </view>
+  <view wx:if="{{loading}}" class="state">正在加载任务…</view>
+  <view wx:elif="{{!jobs.length && !imports.length && !error}}" class="state">暂无处理任务</view>
+</view>

@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["miniprogram-api-typings"],
+    "noEmit": true
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["miniprogram_npm"]
+}

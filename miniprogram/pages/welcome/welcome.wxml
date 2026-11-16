@@ -1,0 +1,6 @@
+<view class="page welcome">
+  <view class="welcome-title">搭搭不搭搭</view>
+  <view class="welcome-art"><image class="welcome-shirt" src="/assets/illustrations/white-shirt.svg" mode="aspectFit" /><image class="welcome-skirt" src="/assets/illustrations/sand-skirt.svg" mode="aspectFit" /></view>
+  <view wx:if="{{error}}" class="error">{{error}}</view><view wx:if="{{requiresInvitation}}" class="field"><view class="field-label">首次加入需要邀请码</view><input class="input" value="{{invitationCode}}" bindinput="onInvitationInput" placeholder="输入维护者提供的一次性邀请码" /></view>
+  <t-button t-class="ui-button" class="button-block" block="{{true}}" custom-style="display:flex;width:100%" theme="primary" loading="{{busy}}" disabled="{{busy}}" bind:tap="onSubmit">{{requiresInvitation ? '加入我的衣橱' : '微信登录'}}</t-button><view class="form-hint welcome-footnote">首次使用需要邀请码</view>
+</view>

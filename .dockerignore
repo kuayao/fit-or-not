@@ -1,0 +1,15 @@
+**
+!package.json
+!package-lock.json
+!server/
+!server/**
+!miniprogram/
+!miniprogram/api/
+!miniprogram/api/contracts.ts
+!miniprogram/utils/
+!miniprogram/utils/layout.ts
+!deploy/
+!deploy/Dockerfile
+!deploy/start.mjs
+**/__pycache__/
+**/.DS_Store

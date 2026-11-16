@@ -1,0 +1,10 @@
+<view class="sortable-list {{columns === 2 ? 'sortable-list--grid' : ''}}">
+  <view wx:if="{{draggingId}}" class="sortable-list__drop" style="{{dropStyle}}" />
+  <view wx:for="{{rows}}" wx:key="id" class="sortable-list__cell {{draggingId === item.id ? 'sortable-list__cell--dragging' : ''}}" style="{{item.style}}">
+    <view class="sortable-list__row {{selectedId === item.id ? 'sortable-list__row--selected' : ''}}">
+      <view class="sortable-list__handle" data-index="{{index}}" catchtouchstart="onDragStart" catchtouchmove="onDragMove" catchtouchend="onDragEnd" catchtouchcancel="onDragCancel" catchtap="" aria-label="拖动排序{{item.name}}" aria-disabled="{{disabled || rows.length < 2}}"><image class="sortable-list__grip" src="/assets/icons/drag-handle.svg" mode="aspectFit" /></view>
+      <view class="sortable-list__content" data-id="{{item.id}}" bindtap="onSelect" aria-role="button" aria-label="{{item.name}}" aria-disabled="{{disabled}}"><image wx:if="{{icon}}" class="sortable-list__icon" src="/assets/icons/{{icon}}.svg" mode="aspectFit" /><text class="sortable-list__name">{{item.name}}</text></view>
+      <button class="sortable-list__actions" disabled="{{disabled}}" data-id="{{item.id}}" bindtap="onActions" aria-label="管理{{item.name}}"><image class="sortable-list__icon" src="/assets/icons/more.svg" mode="aspectFit" /></button>
+    </view>
+  </view>
+</view>

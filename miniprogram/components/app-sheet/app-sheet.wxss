@@ -1,0 +1,14 @@
+.app-sheet-popup { --td-popup-border-radius: var(--sheet-radius); }
+.app-sheet { display: flex; flex-direction: column; box-sizing: border-box; max-height: 78vh; padding: 20rpx var(--sheet-space); background: var(--bg); border-radius: var(--sheet-radius) var(--sheet-radius) 0 0; overflow: hidden; }
+.app-sheet--small { max-height: 60vh; }
+.app-sheet--large, .app-sheet--large-fixed { max-height: 82vh; }
+.app-sheet--large-fixed { height: 82vh; }
+.app-sheet--large-fixed .app-sheet__body { flex: 1; height: 0; }
+.app-sheet__header { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; flex-shrink: 0; padding-bottom: 18rpx; }
+.app-sheet__title { min-width: 0; font-size: var(--sheet-title-size); font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+.app-sheet__header .icon-button { width: 64rpx; min-width: 64rpx; max-width: 64rpx; height: 64rpx; background: var(--muted-surface); }
+.app-sheet__header .icon { width: 32rpx; height: 32rpx; }
+.app-sheet__body { flex: 0 1 auto; min-height: 0; height: auto; overflow: hidden; }
+.app-sheet__body--scrollable { height: 50vh; }
+.app-sheet--large .app-sheet__body--scrollable { height: 58vh; }
+.app-sheet__footer { flex-shrink: 0; padding-top: 16rpx; }

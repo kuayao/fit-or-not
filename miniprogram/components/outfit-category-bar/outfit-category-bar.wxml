@@ -1,0 +1,12 @@
+<view wx:if="{{loading}}" class="category-status">正在加载分类…</view>
+<view wx:if="{{error}}" class="error" bindtap="onRetry">{{error}} · 点击重试</view>
+<view class="outfit-categories {{list ? 'outfit-categories--list' : ''}}">
+  <button size="mini" class="outfit-category {{!value ? 'outfit-category--selected' : ''}}" data-id="" bindtap="onSelect" aria-pressed="{{!value}}" hover-class="control--pressed"><text>{{all ? '全部' : '未分类'}}</text><image wx:if="{{list && !value}}" class="category-check" src="/assets/icons/check.svg" mode="aspectFit" /></button>
+  <button wx:for="{{items}}" wx:key="id" size="mini" class="outfit-category {{value === item.id ? 'outfit-category--selected' : ''}}" data-id="{{item.id}}" bindtap="onSelect" aria-pressed="{{value === item.id}}" hover-class="control--pressed"><text>{{item.name}}</text><image wx:if="{{list && value === item.id}}" class="category-check" src="/assets/icons/check.svg" mode="aspectFit" /></button>
+  <button size="mini" class="outfit-category outfit-category--add" bindtap="onAdd" disabled="{{loading || busy || error}}" hover-class="control--pressed"><image class="category-plus" src="/assets/icons/plus.svg" mode="aspectFit" />新增分类</button>
+</view>
+<app-sheet visible="{{adding}}" title="新增搭配分类" size="small" busy="{{busy}}" bind:close="onClose">
+  <view class="field"><view class="field-label">分类名称</view><input class="input" maxlength="12" value="{{name}}" bindinput="onInput" bindconfirm="onCreate" confirm-type="done" placeholder="例如：旅行、约会" disabled="{{busy}}" /></view>
+  <view wx:if="{{inputError || (submitted && createError)}}" class="error">{{inputError || createError}}</view>
+  <view slot="footer"><t-button t-class="ui-button" block theme="primary" loading="{{busy}}" disabled="{{busy}}" bind:tap="onCreate">新增</t-button></view>
+</app-sheet>

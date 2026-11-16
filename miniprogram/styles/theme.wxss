@@ -1,0 +1,24 @@
+page, .theme {
+  --bg: #FFFFFF; --ink: #424B55; --muted: #66717C; --primary: #426E91; --accent: #5B8DB7;
+  --soft: #F0F6FB; --action: #EDF4FA; --action-line: #CBDCE9; --line: #E9EEF3; --photo: #F8F9FB; --muted-surface: #F7F9FB;
+  --danger: #A54842; --radius: 23rpx; --space: 42rpx; --text-size: 31rpx;
+  --processing-bg: #080F1B;
+  --td-brand-color: #426E91; --td-button-primary-bg-color: #E3EFF9; --td-button-primary-color: #426E91;
+  --td-button-primary-border-color: #DCE8F2; --td-button-border-radius: 23rpx; --td-button-border-width: 2rpx;
+  --td-button-default-bg-color: #F7F9FB; --td-button-default-color: #426E91; --td-button-default-border-color: #CBDCE9;
+  --td-button-medium-height: 92rpx; --td-button-medium-font: 400 27rpx / 40rpx sans-serif;
+  --td-button-small-font: 400 25rpx / 38rpx sans-serif;
+  --td-button-default-active-bg-color: #E2EDF6; --td-button-primary-active-bg-color: #D4E6F4;
+  --td-button-primary-disabled-bg: #F0F3F6; --td-button-primary-disabled-color: #96A3AE; --td-button-primary-disabled-border-color: #E5EAF0;
+  --td-button-default-disabled-bg: #F7F9FB; --td-button-default-disabled-color: #96A3AE; --td-button-default-disabled-border-color: #E5EAF0;
+  --td-button-small-height: 76rpx; --touch-height: 88rpx; --pressed: #E2EDF6;
+  --choice-radius: 19rpx; --choice-font-size: 29rpx; --choice-gap: 14rpx; --choice-border: #E2E9EF;
+  --sheet-radius: 32rpx; --sheet-title-size: 32rpx; --sheet-space: 32rpx;
+  --sheet-option-radius: 16rpx; --sheet-option-size: 28rpx; --sheet-option-height: 96rpx;
+  --sheet-gap: 12rpx; --disabled-ink: #96A3AE;
+  --panel-radius: 34rpx; --on-primary: #FFFFFF;
+  --weather-start: #9EBAD4; --weather-end: #6587AA; --weather-shadow: #426E911A;
+  --weather-glass: #FFFFFF1F; --weather-glass-line: #FFFFFF38;
+  background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+  font-size: var(--text-size); line-height: 1.6;
+}

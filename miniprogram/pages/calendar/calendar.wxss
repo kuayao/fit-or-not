@@ -1,0 +1,14 @@
+.month-heading { display: flex; align-items: center; justify-content: space-between; margin: 29rpx 0 38rpx; font-size: 35rpx; }
+.month-heading .icon { width: 31rpx; height: 31rpx; }
+.calendar-grid { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); text-align: center; gap: 8rpx; }
+.weekdays { font-size: 19rpx; color: var(--muted); margin-bottom: 19rpx; }
+.calendar-day { height: 85rpx; width: 85rpx; box-sizing: border-box; justify-self: center; display: flex; align-items: center; justify-content: center; position: relative; font-size: 25rpx; border-radius: 50%; border: 1px solid transparent; }
+.calendar-day--today { border-color: #8FB1CF; }
+.calendar-day--selected { background: var(--action); color: var(--primary); border-color: #D9E7F2; }
+.calendar-dot { position: absolute; bottom: 6rpx; width: 6rpx; height: 6rpx; border-radius: 50%; background: #7CA4C4; }
+.calendar-legend { display: flex; align-items: center; gap: 10rpx; color: var(--muted); font-size: 19rpx; margin-top: 29rpx; }
+.legend-dot { width: 8rpx; height: 8rpx; border-radius: 50%; background: #7CA4C4; }
+.record-card { border: 1px solid var(--line); border-radius: 27rpx; padding: 29rpx; margin: 27rpx 0; font-size: 25rpx; }
+.record-images { display: flex; gap: 15rpx; margin-top: 23rpx; overflow-x: auto; }
+.record-photo { height: 150rpx; width: 135rpx; background: #F8FAFC; border-radius: 19rpx; flex-shrink: 0; }
+.record-note { font-size: 21rpx; color: var(--muted); margin-top: 21rpx; }

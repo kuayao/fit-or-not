@@ -1,0 +1,5 @@
+.photo-pair { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 23rpx; margin: 35rpx 0; }
+.photo-slot { background: #F6F9FC; border-radius: 31rpx; height: 392rpx; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+.photo-placeholder { width: 85rpx; height: 85rpx; opacity: .4; }
+.photo-caption { position: absolute; bottom: 19rpx; background: #FFFFFFEB; font-size: 19rpx; padding: 10rpx 17rpx; border-radius: 19rpx; }
+.consent-copy { font-size: 21rpx; line-height: 1.8; color: var(--muted); margin: 38rpx 0; }

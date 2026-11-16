@@ -1,0 +1,59 @@
+<view class="page"><view wx:if="{{error}}" class="error" bindtap="onRetry">{{error}} · 点击重试</view><view class="field"><view class="field-label">穿着日期</view><view class="choice-value {{busy || loading ? 'choice-value--disabled' : ''}}" bindtap="onOpenDate" aria-role="button" aria-disabled="{{busy || loading}}"><text class="choice-value__text">{{wornOn}}</text><image class="icon icon--small" src="/assets/icons/calendar.svg" mode="aspectFit" /></view></view><view class="field"><view class="field-label">今天的场景</view><input class="input" maxlength="60" value="{{occasion}}" data-field="occasion" bindinput="onInput" placeholder="例如：日常通勤" /></view>
+  <view class="section-head"><view class="section-title">今天穿了这一套</view><view class="text-button" hover-class="control--pressed" bindtap="onChoose">{{selectedIds.length ? '更换' : '选择衣物'}}<image class="icon icon--small" src="/assets/icons/chevron.svg" mode="aspectFit" /></view></view><view wx:if="{{selectedIds.length}}" class="wear-preview"><block wx:for="{{clothes}}" wx:key="id"><image wx:if="{{item.selected}}" class="preview-item" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" /></block></view><view wx:else class="notice" bindtap="onChoose">从搭配或衣橱中选择今天实际穿着的衣物</view>
+  <view class="field"><view class="field-label">留一句话 · 选填</view><textarea class="textarea" maxlength="1000" value="{{notes}}" data-field="notes" bindinput="onInput" placeholder="这套搭配，穿起来感觉如何？" /></view>
+  <view class="field"><view class="field-label">上身照 · 仅自己可见，可不上传</view><image wx:if="{{bodyUrl}}" class="full-image" src="{{bodyUrl}}" data-url="{{bodyUrl}}" binderror="onImageError" mode="aspectFit" /><view class="actions"><t-button t-class="ui-button" disabled="{{busy}}" bind:tap="onPhoto">{{bodyUrl ? '更换上身照' : '添加上身照'}}</t-button><t-button t-class="ui-button" wx:if="{{bodyUrl}}" bind:tap="onRemovePhoto">移除</t-button></view></view>
+  <view class="form-actions"><t-button t-class="ui-button" class="button-block" block="{{true}}" custom-style="display:flex;width:100%" theme="primary" loading="{{busy}}" disabled="{{busy || loading}}" bind:tap="onSave">保存穿搭记录</t-button><view class="form-hint">每件衣物每天最多计穿着一次</view></view><view wx:if="{{editing}}" class="text-button text-button--center danger" bindtap="onDelete" hover-class="control--pressed">删除这条记录</view></view>
+
+<app-sheet visible="{{choosing}}" title="选择今天穿的衣物" scrollable size="large-fixed" busy="{{busy}}" bind:close="onCloseChoose">
+  <view class="wear-picker-tools">
+    <view class="wear-picker-tabs">
+      <view class="wear-picker-tab {{chooseTab === 'outfits' ? 'wear-picker-tab--selected' : ''}}" data-tab="outfits" bindtap="onChooseTab" aria-role="button" aria-pressed="{{chooseTab === 'outfits'}}">搭配</view>
+      <view class="wear-picker-tab {{chooseTab === 'clothes' ? 'wear-picker-tab--selected' : ''}}" data-tab="clothes" bindtap="onChooseTab" aria-role="button" aria-pressed="{{chooseTab === 'clothes'}}">衣物</view>
+    </view>
+    <block wx:if="{{chooseTab === 'clothes'}}">
+      <view class="search wear-picker-search">
+        <input class="input grow" value="{{searchText}}" maxlength="100" disabled="{{busy}}" bindinput="onSearchInput" bindconfirm="onSearch" confirm-type="search" placeholder="搜索衣物名称、品牌" />
+        <button wx:if="{{searchText || q}}" class="icon-button" disabled="{{busy}}" bindtap="onClearSearch" aria-label="清除搜索"><image class="icon icon--small" src="/assets/icons/close.svg" mode="aspectFit" /></button>
+        <button class="icon-button" disabled="{{busy}}" bindtap="onSearch" aria-label="搜索衣物"><image class="icon icon--small" src="/assets/icons/search.svg" mode="aspectFit" /></button>
+      </view>
+      <scroll-view class="wear-categories" scroll-x show-scrollbar="{{false}}" scroll-into-view="wear-category-{{rootCategoryId || 'all'}}" scroll-with-animation aria-label="衣物分类，左右滑动查看更多">
+        <view id="wear-category-all" class="chip {{!rootCategoryId ? 'chip--selected' : ''}}" data-id="" bindtap="onRootCategory" aria-role="button" aria-pressed="{{!rootCategoryId}}"><image class="icon icon--small" src="/assets/icons/grid.svg" mode="aspectFit" /><text>全部</text></view>
+        <view wx:for="{{rootCategories}}" wx:key="id" id="wear-category-{{item.id}}" class="chip {{rootCategoryId === item.id ? 'chip--selected' : ''}}" data-id="{{item.id}}" bindtap="onRootCategory" aria-role="button" aria-pressed="{{rootCategoryId === item.id}}"><image class="icon icon--small" src="/assets/icons/{{item.icon}}.svg" mode="aspectFit" /><text>{{item.name}}</text></view>
+      </scroll-view>
+      <scroll-view wx:if="{{subCategories.length}}" class="wear-categories wear-subcategories" scroll-x show-scrollbar="{{false}}" scroll-into-view="wear-subcategory-{{categoryId}}" scroll-with-animation aria-label="衣物二级分类，左右滑动查看更多">
+        <view id="wear-subcategory-{{rootCategoryId}}" class="chip {{categoryId === rootCategoryId ? 'chip--selected' : ''}}" data-id="{{rootCategoryId}}" bindtap="onSubCategory" aria-role="button" aria-pressed="{{categoryId === rootCategoryId}}">全部</view>
+        <view wx:for="{{subCategories}}" wx:key="id" id="wear-subcategory-{{item.id}}" class="chip {{categoryId === item.id ? 'chip--selected' : ''}}" data-id="{{item.id}}" bindtap="onSubCategory" aria-role="button" aria-pressed="{{categoryId === item.id}}">{{item.name}}</view>
+      </scroll-view>
+    </block>
+  </view>
+  <view wx:if="{{error}}" class="error">{{error}}</view>
+  <block wx:if="{{chooseTab === 'outfits'}}">
+    <view wx:if="{{outfitsError}}" class="error" bindtap="onMoreOutfits">{{outfitsError}} · 点击重试</view>
+    <view class="wear-grid">
+      <view wx:for="{{outfits}}" wx:key="id" class="sheet-photo-option {{draftOutfitId === item.id ? 'sheet-photo-option--selected' : ''}}" aria-role="button" aria-pressed="{{draftOutfitId === item.id}}" data-id="{{item.id}}" bindtap="onOutfit" hover-class="control--pressed">
+        <view class="wear-outfit-cover" style="background-color:{{item.backgroundColor}};">
+          <image wx:if="{{item.imageUrl}}" class="wear-outfit-cover__image" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" />
+          <image wx:for="{{item.layers}}" wx:for-item="layer" wx:key="clothingId" class="wear-outfit-cover__layer" src="{{layer.imageUrl}}" data-url="{{layer.imageUrl}}" binderror="onImageError" style="{{layer.style}}" mode="aspectFit" />
+        </view>
+        <view class="card-meta">{{item.name}}</view>
+        <view class="sheet-photo-option__check"><image wx:if="{{draftOutfitId === item.id}}" class="sheet-option__check-image" src="/assets/icons/check.svg" mode="aspectFit" /></view>
+      </view>
+    </view>
+    <view wx:if="{{loadingOutfits}}" class="state">正在加载搭配…</view>
+    <view wx:elif="{{!outfits.length && !outfitsError}}" class="state">还没有保存的搭配<view class="text-button text-button--center" data-tab="clothes" bindtap="onChooseTab">选择衣物</view></view>
+    <t-button t-class="ui-button" wx:if="{{outfits.length < outfitsTotal && !outfitsError}}" size="small" loading="{{loadingOutfits}}" disabled="{{loadingOutfits || busy}}" bind:tap="onMoreOutfits">更多搭配</t-button>
+  </block>
+  <block wx:if="{{chooseTab === 'clothes'}}">
+    <view wx:if="{{loadingCategories}}" class="form-hint">正在加载分类…</view>
+    <view wx:if="{{categoriesError}}" class="error" bindtap="onRetryCategories">{{categoriesError}} · 点击重试分类</view>
+    <view wx:if="{{clothesLoaded}}" class="wear-picker-count">共 {{clothesTotal}} 件</view>
+    <view class="wear-grid"><block wx:for="{{clothes}}" wx:key="id"><view wx:if="{{item.visible}}" class="sheet-photo-option {{item.draftSelected ? 'sheet-photo-option--selected' : ''}}" aria-role="button" aria-pressed="{{item.draftSelected}}" data-id="{{item.id}}" bindtap="onClothing"><image class="card-image" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" /><view class="card-meta">{{item.name}}</view><view class="sheet-photo-option__check"><image wx:if="{{item.draftSelected}}" class="sheet-option__check-image" src="/assets/icons/check.svg" mode="aspectFit" /></view></view></block></view>
+    <view wx:if="{{loadingClothes}}" class="state">正在加载衣物…</view>
+    <view wx:elif="{{clothesError}}" class="error" bindtap="onMoreClothes">{{clothesError}} · 点击重试</view>
+    <view wx:elif="{{clothesLoaded && !clothesCount}}" class="state">{{q ? '没有找到相关衣物' : categoryId ? '这个分类还没有衣物' : '先往衣橱添加一些衣物吧'}}</view>
+    <t-button t-class="ui-button wear-picker-more" wx:if="{{clothesCount < clothesTotal && !clothesError}}" size="small" loading="{{loadingClothes}}" disabled="{{loadingClothes || busy}}" bind:tap="onMoreClothes">更多衣物</t-button>
+  </block>
+  <view slot="footer"><t-button t-class="ui-button" block="{{true}}" theme="primary" disabled="{{busy || !draftIds.length}}" loading="{{busy}}" bind:tap="onConfirmChoose" custom-style="display:flex;width:100%" class="button-block">确认选择 · {{draftIds.length}} 件</t-button></view>
+</app-sheet>
+
+<app-date-sheet visible="{{dateOpen}}" title="穿着日期" value="{{wornOn}}" max="{{today}}" bind:confirm="onDate" bind:close="onCloseDate" />

@@ -1,0 +1,83 @@
+<view class="page review-page {{record && record.itemCount && record.status !== 'cancelled' ? 'review-page--editable' : ''}}">
+  <view wx:if="{{loading && !record}}" class="state">正在加载…</view>
+  <view wx:if="{{error}}" class="error" bindtap="onRetry">{{error}}</view>
+  <view wx:if="{{record}}" class="review-sheet">
+    <view class="review-overview">
+      <image class="review-overview__image" src="{{saveAsSet && coverUrl ? coverUrl : sourceUrl}}" data-url="{{saveAsSet && coverUrl ? coverUrl : sourceUrl}}" data-asset-id="{{saveAsSet && coverUrl ? coverAssetId : record.inputAssetId}}" binderror="onImageError" mode="aspectFit" bindtap="onPreview" />
+      <view class="review-overview__content">
+        <view class="review-label">{{!record.itemCount ? '原图' : saveAsSet ? '套装名称' : '上传图片'}}</view>
+        <view wx:if="{{saveAsSet && record.itemCount && record.status !== 'cancelled'}}" class="review-name-row">
+          <input class="review-name" maxlength="60" value="{{name}}" placeholder="填写套装名称" disabled="{{busy || confirmLocked}}" bindinput="onName" />
+          <image class="review-name-row__icon" src="/assets/icons/edit.svg" />
+        </view>
+        <view wx:else class="review-overview__title">{{saveAsSet ? (name || '套装照片') : '单品录入'}}</view>
+        <view class="review-overview__actions">
+          <view wx:if="{{saveAsSet && record.itemCount && record.status !== 'cancelled'}}" class="review-cover-action"><t-button class="button-block" t-class="review-link" block variant="text" theme="primary" size="small" disabled="{{busy || confirmLocked}}" bind:tap="onCover">更换整套图</t-button></view>
+          <view wx:if="{{!saveAsSet || (coverAssetId && coverAssetId !== record.inputAssetId)}}" class="review-source-action"><t-button class="button-block" t-class="review-link" block variant="text" theme="primary" size="small" data-url="{{sourceUrl}}" data-asset-id="{{record.inputAssetId}}" bind:tap="onPreview">查看原图</t-button></view>
+        </view>
+      </view>
+    </view>
+    <view wx:if="{{saveAsSet && coverMessage && record.status !== 'cancelled'}}" class="review-progress review-cover-progress">
+      <text class="grow">{{coverMessage}}</text>
+      <view wx:if="{{coverRetryId}}" class="review-cover-retry"><t-button class="button-block" t-class="review-cover-retry__button" block theme="primary" size="small" data-id="{{coverRetryId}}" disabled="{{busy || confirmLocked || record.pending}}" bind:tap="onRetryJob">重试整套图</t-button></view>
+    </view>
+    <view wx:if="{{record.itemCount && record.status !== 'cancelled'}}" class="review-set-option">
+      <text>保存为套装</text>
+      <switch class="review-set-option__switch" color="#426E91" checked="{{saveAsSet}}" disabled="{{busy || confirmLocked}}" bindchange="onSet" />
+    </view>
+
+    <view wx:if="{{record.pending && record.itemCount}}" class="notice review-notice">正在处理，可稍后回来核对</view>
+    <view wx:if="{{record.status === 'cancelled'}}" class="notice review-notice">录入已取消</view>
+    <view wx:if="{{record.itemCount}}" class="review-heading">
+      <view class="review-heading__title">单品<text class="review-heading__count">{{items.length}} 件</text></view>
+      <view wx:if="{{record.status !== 'cancelled'}}" class="review-add"><t-button class="button-block" t-class="review-link" block variant="text" theme="primary" size="small" disabled="{{busy || confirmLocked || (items.length >= 6 && !addPending)}}" bind:tap="onAddItem"><view class="review-add__content"><image class="review-add__icon" src="/assets/icons/plus.svg" /><text>{{addPending ? '重试补录' : '补录衣物'}}</text></view></t-button></view>
+    </view>
+    <view wx:if="{{!record.itemCount && record.status !== 'cancelled'}}" class="review-recovery">
+      <image class="review-recovery__icon" src="/assets/icons/{{record.pending ? 'sparkles' : 'image'}}.svg" mode="aspectFit" />
+      <view class="review-recovery__title">{{record.pending ? '正在定位衣物' : '识别未完成'}}</view>
+      <view class="review-recovery__message">{{locateMessage}}</view>
+      <view wx:if="{{!record.pending}}" class="review-recovery__action"><t-button class="button-block" t-class="ui-button" block theme="primary" disabled="{{busy || addPending}}" bind:tap="onRedetect">补充描述，重新识别</t-button></view>
+      <view wx:if="{{!record.pending}}" class="review-recovery__action"><t-button class="button-block" t-class="ui-button" block variant="outline" disabled="{{busy}}" bind:tap="onAddItem">{{addPending ? '重试补录' : '换一张单品照片补录'}}</t-button></view>
+    </view>
+    <view class="review-grid">
+      <view wx:for="{{items}}" wx:key="id" class="review-item {{!item.included ? 'review-item--excluded' : ''}}">
+        <view class="review-item__visual">
+          <image wx:if="{{item.clothing}}" class="review-item__image" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" data-asset-id="{{item.clothing.primaryAssetId}}" binderror="onImageError" mode="aspectFit" bindtap="onPreview" />
+          <view wx:else class="review-item__removed">已移除</view>
+          <view wx:if="{{item.clothing && record.status !== 'cancelled'}}" class="review-choice">
+            <t-button class="button-block" t-class="review-select" block variant="text" shape="square" size="small" disabled="{{busy || confirmLocked}}" aria-label="{{item.included ? '取消录入这件衣物' : '选择录入这件衣物'}}" data-id="{{item.id}}" bind:tap="onInclude"><view class="review-select__mark {{item.included ? 'review-select__mark--checked' : ''}}"><image wx:if="{{item.included}}" class="review-select__icon" src="/assets/icons/check.svg" /></view></t-button>
+          </view>
+          <view wx:if="{{item.target.visibility === 'occluded'}}" class="review-item__visibility">部分遮挡</view>
+        </view>
+        <view class="review-item__name">{{item.clothing.name || '衣物已移除'}}</view>
+        <view class="review-item__category">{{item.clothing.categoryName || '待确认分类'}}</view>
+        <view wx:if="{{item.pending}}" class="review-item__progress">{{item.clothing.processingPhase}}</view>
+        <view wx:if="{{item.clothing && !item.pending}}" class="review-item__actions">
+          <view class="review-edit"><t-button class="button-block" t-class="review-link" block variant="text" theme="primary" size="small" disabled="{{busy || confirmLocked}}" data-id="{{item.clothing.id}}" bind:tap="onEdit">编辑 / 补拍</t-button></view>
+          <view wx:if="{{item.retryId && record.status !== 'cancelled'}}" class="review-item-retry"><t-button class="button-block" t-class="review-link" block variant="text" theme="primary" size="small" disabled="{{busy || confirmLocked}}" data-id="{{item.retryId}}" bind:tap="onRetryJob">重试</t-button></view>
+        </view>
+        <view wx:if="{{item.message}}" class="error review-item__error">{{item.message}}</view>
+      </view>
+    </view>
+  </view>
+  <block wx:if="{{record && record.status !== 'cancelled'}}">
+    <view class="review-cancel"><view class="review-cancel__action"><t-button class="button-block" t-class="review-cancel__button" block variant="text" size="small" disabled="{{busy || confirmLocked}}" bind:tap="onCancel">取消本次录入</t-button></view></view>
+    <view wx:if="{{record.itemCount}}" class="review-footer">
+      <view class="review-footer__count">已选 <text class="review-footer__number">{{count}}</text> 件</view>
+      <view class="review-footer__action"><t-button class="button-block" t-class="review-confirm" block theme="primary" loading="{{busy}}" disabled="{{busy || loading || addPending || record.pending || !count}}" bind:tap="onConfirm">{{confirmLocked ? '重试确认' : record.pending ? '处理中' : '确认入橱'}}</t-button></view>
+    </view>
+  </block>
+</view>
+
+<app-sheet visible="{{redetectOpen}}" title="重新识别套装" busy="{{busy}}" bind:close="onCloseRedetect">
+  <scroll-view class="redetect-body" scroll-y show-scrollbar="{{false}}">
+    <image class="redetect-source" src="{{sourceUrl}}" data-url="{{sourceUrl}}" data-asset-id="{{record.inputAssetId}}" binderror="onImageError" mode="aspectFit" bindtap="onPreview" />
+    <view class="field-label">补充描述 <text class="redetect-optional">选填</text></view>
+    <textarea class="redetect-input" value="{{userPrompt}}" maxlength="300" disabled="{{busy || redetectLocked}}" placeholder="例如：识别主图人物的灰色开衫和里面的碎花连衣裙" bindinput="onUserPrompt" />
+    <view class="redetect-count">{{userPrompt.length}} / 300</view>
+  </scroll-view>
+  <view slot="footer">
+    <view wx:if="{{error}}" class="error">{{error}}</view>
+    <t-button class="button-block" t-class="ui-button" block theme="primary" disabled="{{busy}}" loading="{{busy}}" bind:tap="onConfirmRedetect">{{redetectLocked ? '重试提交' : '开始识别'}}</t-button>
+  </view>
+</app-sheet>

@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "智能搭配",
+  "usingComponents": {
+    "t-button": "tdesign-miniprogram/button/button",
+    "app-weather": "/components/app-weather/app-weather"
+  }
+}

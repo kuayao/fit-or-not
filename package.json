@@ -1,0 +1,51 @@
+{
+  "name": "fit-or-not",
+  "version": "0.1.5",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@11.19.1",
+  "engines": {
+    "node": "24.22.3",
+    "npm": "11.19.1"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:api": "tsx watch --env-file=.env server/src/index.ts",
+    "dev:worker": "tsx watch --env-file=.env server/src/worker.ts",
+    "start": "node --env-file=.env dist/server/src/index.js",
+    "build": "tsc -p server/tsconfig.json",
+    "typecheck": "tsc -p server/tsconfig.json --noEmit && tsc -p miniprogram/tsconfig.json && tsc -p tests/tsconfig.json",
+    "db:up": "docker compose -f deploy/compose.local.yml up -d --wait",
+    "db:stop": "docker compose -f deploy/compose.local.yml stop",
+    "invite": "tsx --env-file=.env server/src/invite.ts",
+    "configure": "node scripts/configure.mjs",
+    "test": "tsx --env-file=.env --test tests/*.test.ts",
+    "build:wechat-deps": "node scripts/build-wechat-deps.mjs",
+    "build:wechat": "node scripts/build-wechat.mjs",
+    "package:production": "node scripts/package.mjs production",
+    "package:local": "node scripts/package.mjs local",
+    "package:backend": "npm run typecheck && node scripts/package-backend.mjs production",
+    "package:wechat": "npm run typecheck && npm run build:wechat && node scripts/package-wechat.mjs",
+    "test:simulator": "tsx --env-file=.env tests/simulator-fixture.ts",
+    "start:worker": "node --env-file=.env dist/server/src/worker.js"
+  },
+  "dependencies": {
+    "express": "5.3.0",
+    "multer": "2.5.0",
+    "pg": "8.23.1",
+    "sharp": "0.35.5",
+    "yazl": "3.3.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.6",
+    "@types/multer": "2.3.0",
+    "@types/node": "24.19.2",
+    "@types/pg": "8.23.1",
+    "@types/yazl": "3.3.1",
+    "esbuild": "0.28.2",
+    "miniprogram-api-typings": "5.3.1",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2"
+  }
+}

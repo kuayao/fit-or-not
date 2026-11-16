@@ -1,0 +1,20 @@
+.jobs-heading { display: flex; align-items: center; justify-content: space-between; gap: 24rpx; margin-bottom: 28rpx; }
+.jobs-heading__count { flex-shrink: 0; font-size: 23rpx; color: var(--muted); }
+.job-card { margin-bottom: 28rpx; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--bg); }
+.job-card__image { position: relative; height: 400rpx; padding: 20rpx 24rpx 76rpx; box-sizing: border-box; background: var(--photo); display: flex; align-items: center; justify-content: center; }
+.job-card__garment { width: 88%; height: 100%; }
+.job-card__badges { position: absolute; left: 22rpx; right: 22rpx; bottom: 20rpx; display: flex; justify-content: space-between; align-items: flex-end; gap: 14rpx; }
+.job-card__steps { display: flex; flex-wrap: wrap; gap: 10rpx; min-width: 0; }
+.job-card__tag { display: flex; align-items: center; gap: 8rpx; padding: 8rpx 14rpx; border: 1px solid var(--line); border-radius: 40rpx; background: var(--bg); color: var(--primary); font-size: 21rpx; line-height: 1.4; white-space: nowrap; }
+.job-card__step-icon { width: 23rpx; height: 23rpx; flex-shrink: 0; }
+.job-card__step-text { font-size: 19rpx; color: var(--muted); }
+.job-card__tag--warning, .job-card__tag--warning .job-card__step-text { color: var(--danger); }
+.job-card__status { display: flex; align-items: center; gap: 10rpx; flex-shrink: 0; padding: 9rpx 17rpx; border: 1px solid var(--action-line); border-radius: 40rpx; background: var(--soft); color: var(--primary); font-size: 21rpx; font-weight: 500; line-height: 1.4; }
+.job-card__status-dot { width: 8rpx; height: 8rpx; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.job-card__status-dot--pending { animation: job-status-pulse 1.8s ease-in-out infinite; }
+.job-card__status--warning { color: var(--danger); border-color: var(--line); background: var(--bg); }
+.job-card__name { padding: 22rpx 24rpx; border-top: 1px solid var(--line); font-size: 27rpx; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+@keyframes job-status-pulse { 0%, 100% { opacity: .4; } 50% { opacity: 1; } }
+
+.import-job { display: flex; align-items: center; gap: 24rpx; padding: 24rpx 0; border-bottom: 1px solid var(--line); }
+.import-job__image { width: 150rpx; height: 180rpx; flex-shrink: 0; background: var(--photo); border-radius: var(--radius); }

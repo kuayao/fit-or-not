@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>搭搭不搭搭 · 交互设计原型</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="review-layout">
+    <aside class="review-sidebar">
+      <a class="review-brand" href="../README.md">搭搭不搭搭<span>晴空蓝白 · 女生衣橱</span></a>
+      <p class="review-caption">开发前设计 · 2026.11</p>
+      <nav id="screen-nav" aria-label="设计页面"></nav>
+      <div class="review-links"><a href="board.html">查看设计图总览 ↗</a><a href="../01-product-spec.md">产品需求文档 ↗</a></div>
+    </aside>
+    <main class="stage">
+      <div class="stage-heading"><span>晴空蓝白 · 交互原型</span><span>示例数据 · 本地演示</span></div>
+      <div class="mobile-picker"><label for="screen-select">查看页面</label><select id="screen-select"></select></div>
+      <div class="phone" id="phone">
+        <div class="system-bar"><span>9:41</span><div class="system-indicators"><span class="signal">▂▄▆</span><span class="battery"></span></div></div>
+        <div class="wechat-bar"><span id="mini-title">搭搭不搭搭</span><span class="capsule"><img src="assets/icons/more.svg" alt="更多"><span></span><i></i></span></div>
+        <div class="app-scroll" id="app"></div>
+        <nav class="tabbar" id="tabbar" aria-label="主导航"></nav>
+        <div class="toast" id="toast" aria-live="polite"></div>
+        <div id="modal-root"></div>
+      </div>
+      <p class="stage-footnote">可点击导航、衣物卡片和操作按钮。刷新恢复演示数据。</p>
+    </main>
+    <aside class="review-notes">
+      <p class="eyebrow">设计说明</p>
+      <h1 id="review-title">我的衣橱</h1>
+      <p id="review-description"></p>
+      <div class="note-divider"></div>
+      <p class="eyebrow">可以试试</p>
+      <ol id="review-steps"></ol>
+      <div class="note-divider"></div>
+      <label class="state-label" for="demo-state">检查页面状态</label>
+      <select id="demo-state"><option value="normal">正常状态</option><option value="empty">空数据</option><option value="error">请求失败</option><option value="loading">加载中</option></select>
+      <p class="small-note">状态切换用于衣橱；其他页面包含各自的处理与未配置状态。</p>
+      <div class="swatches"><i></i><i></i><i></i><i></i></div>
+      <p class="small-note">白色主底 / 灰蓝点缀 / 轻盈留白<br>图像处理、天气和 AI 为结果演示。</p>
+    </aside>
+  </div>
+  <input id="file-input" type="file" accept="image/*" hidden>
+  <script src="app.js"></script>
+</body>
+</html>

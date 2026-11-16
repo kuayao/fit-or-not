@@ -1,0 +1,7 @@
+{
+  "component": true,
+  "usingComponents": {
+    "app-sheet": "/components/app-sheet/app-sheet",
+    "t-button": "tdesign-miniprogram/button/button"
+  }
+}

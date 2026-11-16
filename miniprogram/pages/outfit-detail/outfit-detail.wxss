@@ -1,0 +1,2 @@
+.outfit-canvas { position: relative; width: 85%; max-width: 565rpx; margin: 0 auto; aspect-ratio: 3 / 4; border-radius: var(--radius); overflow: hidden; background: #F8FAFC; }
+.canvas-item { position: absolute; transform-origin: center center; }

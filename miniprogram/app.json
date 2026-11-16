@@ -1,0 +1,66 @@
+{
+  "pages": [
+    "pages/welcome/welcome",
+    "pages/home/home",
+    "pages/wardrobe/wardrobe",
+    "pages/clothing-edit/clothing-edit",
+    "pages/clothing-import/clothing-import",
+    "pages/import-review/import-review",
+    "pages/clothing-set/clothing-set",
+    "pages/clothing-detail/clothing-detail",
+    "pages/image-jobs/image-jobs",
+    "pages/outfits/outfits",
+    "pages/outfit-edit/outfit-edit",
+    "pages/outfit-detail/outfit-detail",
+    "pages/calendar/calendar",
+    "pages/wear-edit/wear-edit",
+    "pages/statistics/statistics",
+    "pages/packing-lists/packing-lists",
+    "pages/packing-detail/packing-detail",
+    "pages/profile/profile",
+    "pages/profile-edit/profile-edit",
+    "pages/taxonomy/taxonomy",
+    "pages/settings/settings",
+    "pages/recommendations/recommendations",
+    "pages/recommendation-detail/recommendation-detail",
+    "pages/try-on/try-on"
+  ],
+  "window": {
+    "navigationBarTitleText": "搭搭不搭搭",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#FFFFFF"
+  },
+  "tabBar": {
+    "custom": true,
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/wardrobe/wardrobe",
+        "text": "衣橱"
+      },
+      {
+        "pagePath": "pages/outfits/outfits",
+        "text": "搭配"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的"
+      }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于获取当前位置的天气预报"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation"
+  ],
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

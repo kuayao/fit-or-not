@@ -1,0 +1,6 @@
+.welcome-title { font-size: 62rpx; font-weight: 500; line-height: 1.5; letter-spacing: 4rpx; margin: 58rpx 0 33rpx; }
+.welcome-art { height: 519rpx; position: relative; margin: 46rpx 0 50rpx; background: #F8FAFC; border-radius: 269rpx 269rpx 31rpx 31rpx; overflow: hidden; }
+.welcome-shirt, .welcome-skirt { position: absolute; height: 423rpx; width: 346rpx; }
+.welcome-shirt { left: 10rpx; top: 27rpx; transform: rotate(-11deg); }
+.welcome-skirt { right: -19rpx; top: 129rpx; transform: rotate(10deg); }
+.welcome-footnote { text-align: center; margin-top: 27rpx; }

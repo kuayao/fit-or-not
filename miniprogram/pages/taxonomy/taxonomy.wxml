@@ -1,0 +1,25 @@
+<view class="page">
+  <scroll-view class="category-scroll taxonomy-tabs" scroll-x enhanced show-scrollbar="{{false}}" scroll-into-view="taxonomy-kind-{{kindIndex}}" scroll-with-animation aria-label="分类与标签，左右滑动查看更多"><view class="category-row"><view wx:for="{{kinds}}" wx:key="*this" id="taxonomy-kind-{{index}}" class="chip {{kindIndex === index ? 'chip--selected' : ''}}" data-index="{{index}}" bindtap="onKindTab" hover-class="control--pressed">{{item}}</view></view></scroll-view><view wx:if="{{error}}" class="error" bindtap="onRetry">{{error}} · 点击重试</view>
+  <view class="taxonomy-hint">按住左侧手柄拖动排序</view>
+  <view wx:if="{{busy}}" class="taxonomy-hint">正在保存…</view>
+  <block wx:if="{{kindIndex === 0}}">
+    <view class="taxonomy-heading"><view class="section-title">一级分类</view><view class="text-button" data-parent-id="" bindtap="onAdd">添加一级分类</view></view>
+    <sortable-list items="{{rootCategories}}" columns="{{2}}" selected-id="{{rootCategoryId}}" disabled="{{busy || loading}}" revision="{{sortRevision}}" bind:select="onRootCategory" bind:actions="onExpand" bind:reorder="onReorder" />
+    <view wx:if="{{rootCategoryId}}" class="taxonomy-heading"><view class="section-title">二级分类</view><view class="text-button" data-parent-id="{{rootCategoryId}}" bindtap="onAdd">添加二级分类</view></view>
+    <sortable-list items="{{subCategories}}" icon="shirt" disabled="{{busy || loading}}" revision="{{sortRevision}}" bind:select="onExpand" bind:actions="onExpand" bind:reorder="onReorder" />
+    <view wx:if="{{!loading && !error && rootCategoryId && !subCategories.length}}" class="state">这个一级分类下还没有二级分类</view>
+  </block>
+  <block wx:else>
+    <sortable-list items="{{visibleItems}}" icon="tag" disabled="{{busy || loading}}" revision="{{sortRevision}}" bind:select="onExpand" bind:actions="onExpand" bind:reorder="onReorder" />
+    <t-button t-class="ui-button" class="button-block" block="{{true}}" custom-style="display:flex;width:100%" theme="primary" disabled="{{busy || loading}}" bind:tap="onAdd"><image class="icon icon--small" src="/assets/icons/plus.svg" mode="aspectFit" /> 添加{{kinds[kindIndex]}}</t-button>
+  </block>
+  <view wx:if="{{loading}}" class="state">正在加载…</view><view wx:elif="{{!visibleCount && !error}}" class="state">还没有{{kinds[kindIndex]}}，添加一项开始整理吧。</view>
+</view>
+
+<app-sheet visible="{{!!expandedId && !sizeKindOpen}}" title="{{activeName}}" size="small" busy="{{busy}}" bind:close="onCloseActions"><view wx:if="{{error}}" class="error">{{error}}</view><view class="sheet-actions"><t-button wx:if="{{activeRootCategory}}" t-class="ui-button" disabled="{{busy}}" bind:tap="onOpenSizeKind" block="{{true}}" custom-style="display:flex;width:100%" class="button-block">尺码分组 · {{activeSizeKind === 'shoe-size' ? '鞋码' : '服装尺码'}}</t-button><t-button t-class="ui-button" disabled="{{busy}}" data-id="{{expandedId}}" data-type="{{activeType}}" bind:tap="onRename" block="{{true}}" custom-style="display:flex;width:100%" class="button-block"><image class="icon icon--small" src="/assets/icons/edit.svg" /> 重命名</t-button><t-button t-class="ui-button ui-button--danger" theme="danger" variant="outline" disabled="{{busy}}" data-id="{{expandedId}}" data-type="{{activeType}}" bind:tap="onDelete" block="{{true}}" custom-style="display:flex;width:100%" class="button-block"><image class="icon icon--small" src="/assets/icons/trash.svg" /> 删除</t-button></view></app-sheet>
+
+<app-sheet visible="{{sizeKindOpen}}" title="选择尺码分组" size="small" busy="{{busy}}" bind:close="onCloseSizeKind">
+  <view class="sheet-note">二级分类跟随一级分类。已有衣物填写尺码时，需先清空这些尺码再更换分组。</view>
+  <view wx:if="{{error}}" class="error">{{error}}</view>
+  <view class="sheet-options"><button wx:for="{{sizeKinds}}" wx:key="value" class="sheet-option {{activeSizeKind === item.value ? 'sheet-option--selected' : ''}}" disabled="{{busy}}" data-kind="{{item.value}}" bindtap="onSizeKind" hover-class="control--pressed" aria-pressed="{{activeSizeKind === item.value}}"><view class="sheet-option__name">{{item.label}}<view class="sheet-option__hint">{{item.hint}}</view></view><view class="sheet-option__check"><image wx:if="{{activeSizeKind === item.value}}" class="sheet-option__check-image" src="/assets/icons/check.svg" mode="aspectFit" /></view></button></view>
+</app-sheet>

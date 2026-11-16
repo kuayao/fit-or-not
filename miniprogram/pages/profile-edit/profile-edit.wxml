@@ -1,0 +1,24 @@
+<view class="page profile-edit">
+  <view wx:if="{{loading}}" class="state">正在加载个人资料…</view>
+  <view wx:if="{{error}}" class="error">{{error}}</view>
+  <t-button wx:if="{{!loading && !loaded}}" t-class="ui-button" block bind:tap="onRetry">重新加载</t-button>
+  <form wx:if="{{loaded}}" bindsubmit="onSave">
+    <view class="profile-edit__avatar-field">
+      <button class="profile-edit__avatar-button" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" disabled="{{busy}}" aria-label="选择头像">
+        <image wx:if="{{avatarUrl}}" class="profile-edit__avatar" src="{{avatarUrl}}" data-url="{{avatarUrl}}" binderror="onImageError" mode="aspectFill" />
+        <image wx:else class="icon" src="/assets/icons/user.svg" mode="aspectFit" />
+      </button>
+      <view class="profile-edit__avatar-label">点击选择头像</view>
+      <view class="form-hint">头像可以稍后设置</view>
+    </view>
+    <view class="field">
+      <view class="field-label">昵称</view>
+      <input class="input" name="nickname" type="nickname" value="{{nickname}}" maxlength="30" disabled="{{busy}}" placeholder="填写昵称，也可选择微信昵称" />
+      <view wx:if="{{nicknameError}}" class="profile-edit__field-error">{{nicknameError}}</view>
+    </view>
+    <view class="bottom-action">
+      <t-button t-class="ui-button" class="button-block" block type="submit" theme="primary" loading="{{busy}}" disabled="{{busy}}">{{fromLogin ? '保存并进入衣橱' : '保存资料'}}</t-button>
+    </view>
+  </form>
+  <t-button wx:if="{{fromLogin}}" t-class="ui-button" class="button-block" block variant="text" disabled="{{busy}}" bind:tap="onLeave">稍后完善，先逛逛</t-button>
+</view>

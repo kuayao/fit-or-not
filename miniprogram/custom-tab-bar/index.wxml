@@ -1,0 +1,9 @@
+<view class="tab-bar theme">
+  <block wx:for="{{tabs}}" wx:key="path">
+  <button wx:if="{{index === 2}}" class="tab-add" bindtap="onAdd" aria-label="新增衣服"><image class="tab-add__icon" src="/assets/icons/plus.svg" mode="aspectFit" /></button>
+  <view class="tab {{selected === index ? 'tab--selected' : ''}}" data-index="{{index}}" bindtap="onChange" aria-role="button" aria-label="{{item.label}}">
+    <image class="tab-icon" src="/assets/icons/{{item.icon}}.svg" mode="aspectFit" />
+    <text>{{item.label}}</text>
+  </view>
+  </block>
+</view>

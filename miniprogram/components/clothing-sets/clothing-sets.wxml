@@ -1,0 +1,23 @@
+<scroll-view class="sets-scroll" scroll-y enhanced lower-threshold="200" bindscrolltolower="onMore" show-scrollbar="{{false}}">
+  <view class="sets-content">
+    <view class="sets-toolbar">
+      <view class="search sets-search"><image class="sets-search__icon" src="/assets/icons/search.svg" mode="aspectFit" /><input class="input grow" value="{{q}}" bindinput="onInput" bindconfirm="onSearch" confirm-type="search" placeholder="搜索套装" /></view>
+      <view class="sets-create"><t-button t-class="sets-create__button" class="button-block" block size="small" theme="primary" bind:tap="onCreate"><view class="sets-create__content"><image class="sets-create__icon" src="/assets/icons/plus.svg" mode="aspectFit" />新建</view></t-button></view>
+    </view>
+    <view class="sets-count">{{loading && !loaded ? '正在加载' : '共 ' + total + ' 套'}}</view>
+    <view wx:if="{{error}}" class="error" bindtap="onSearch">{{error}} · 点击重试</view>
+    <view wx:if="{{loading && !sets.length}}" class="sets-list"><view wx:for="{{[1,2,3]}}" wx:key="*this" class="skeleton sets-skeleton" /></view>
+    <view class="sets-list">
+      <view wx:for="{{sets}}" wx:key="id" class="sets-card" data-id="{{item.id}}" bindtap="onSet" hover-class="sets-card--pressed" aria-role="button" aria-label="{{item.name}}，{{item.memberCount}} 件单品">
+        <image class="sets-cover" src="{{item.imageUrl || item.previewUrls[0].url}}" data-url="{{item.imageUrl || item.previewUrls[0].url}}" binderror="onImageError" mode="aspectFit" />
+        <view class="sets-card__body">
+          <view class="sets-card__heading"><view class="sets-card__name">{{item.name}}</view><image class="sets-card__arrow" src="/assets/icons/chevron.svg" mode="aspectFit" /></view>
+          <view class="sets-card__count">{{item.memberCount}} 件单品</view>
+          <view class="sets-previews"><view wx:for="{{item.previewUrls}}" wx:for-item="preview" wx:key="id" class="sets-previews__item"><image class="sets-previews__image" src="{{preview.url}}" data-url="{{preview.url}}" binderror="onImageError" mode="aspectFit" /></view></view>
+        </view>
+      </view>
+    </view>
+    <view wx:if="{{loading && sets.length}}" class="state">正在加载套装…</view>
+    <view wx:if="{{loaded && !loading && !sets.length && !error}}" class="empty-state sets-empty"><image class="empty-icon" src="/assets/icons/hanger.svg" mode="aspectFit" /><view class="sets-empty__title">{{q ? '没有找到套装' : '还没有套装'}}</view></view>
+  </view>
+</scroll-view>

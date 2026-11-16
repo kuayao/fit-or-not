@@ -1,4 +1,18 @@
 # Byte-compiled / optimized / DLL files
+node_modules/
+.local-tools/
+.local/
+/release/
+miniprogram/miniprogram_npm/
+miniprogram/**/*.js
+miniprogram/**/*.js.map
+project.private.config.json
+project.config.json
+.DS_Store
+*.pem
+*.key
+*.p12
+*.pfx
 __pycache__/
 *.py[codz]
 *$py.class
@@ -151,6 +165,8 @@ activemq-data/
 
 # Environments
 .env
+.env.*
+!.env.example
 .envrc
 .venv
 env/

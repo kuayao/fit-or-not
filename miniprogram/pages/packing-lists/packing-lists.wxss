@@ -1,0 +1,38 @@
+.packing-page { min-height: 100vh; padding-bottom: calc(40rpx + env(safe-area-inset-bottom)); background: var(--muted-surface); }
+.packing-overview { display: flex; align-items: center; justify-content: space-between; gap: 24rpx; padding: 32rpx; margin-bottom: 32rpx; border-radius: var(--panel-radius); background: linear-gradient(120deg, var(--action), var(--soft)); }
+.packing-overview__info { min-width: 0; }
+.packing-overview__title { font-size: 38rpx; font-weight: 600; line-height: 1.4; color: var(--primary); }
+.packing-overview__count { font-size: 23rpx; color: var(--muted); margin-top: 12rpx; }
+button.packing-overview__create { display: flex; align-items: center; justify-content: center; flex-shrink: 0; gap: 8rpx; box-sizing: border-box; width: auto; min-width: 0; max-width: none; min-height: var(--touch-height); margin: 0; padding: 16rpx 22rpx; border: 0; border-radius: var(--choice-radius); background: var(--primary); color: var(--on-primary); font-size: 25rpx; font-weight: 500; line-height: 1.5; }
+.packing-overview__create::after { border: 0; }
+.packing-overview__create image { width: 28rpx; height: 28rpx; filter: brightness(0) invert(1); }
+button.packing-overview__create--pressed { background: var(--accent); }
+button.packing-overview__create[disabled] { opacity: .6; }
+.packing-tabs { margin-bottom: 28rpx; }
+.packing-card { background: var(--bg); border: 1px solid var(--line); border-radius: var(--panel-radius); padding: 28rpx 30rpx; margin-bottom: 24rpx; }
+.packing-card--pressed { background: var(--soft); }
+.packing-card__top { display: flex; justify-content: space-between; align-items: center; gap: 12rpx; }
+.packing-card__date { display: flex; align-items: center; gap: 10rpx; min-width: 0; font-size: 22rpx; color: var(--muted); line-height: 1.6; }
+.packing-card__date image { width: 28rpx; height: 28rpx; flex-shrink: 0; }
+.packing-card__date text { min-width: 0; overflow-wrap: anywhere; }
+.packing-card__arrow { width: 28rpx; height: 28rpx; flex-shrink: 0; }
+.packing-card__name { font-size: 34rpx; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; margin: 22rpx 0 26rpx; }
+.packing-card__bottom { border-top: 1px dashed var(--action-line); padding-top: 22rpx; }
+.packing-card__summary { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12rpx; }
+.packing-card__status { color: var(--muted); background: var(--muted-surface); padding: 5rpx 14rpx; border-radius: var(--choice-radius); font-size: 21rpx; }
+.packing-card__status--ready { color: var(--primary); background: var(--soft); }
+.packing-card__count { font-size: 22rpx; color: var(--muted); }
+.packing-card__progress { height: 8rpx; background: var(--action); border-radius: var(--choice-radius); overflow: hidden; margin-top: 18rpx; }
+.packing-card__fill { height: 100%; border-radius: var(--choice-radius); background: var(--accent); }
+.packing-error { padding: 28rpx; border: 1px solid var(--line); background: var(--bg); border-radius: var(--radius); text-align: center; }
+.packing-error__message { color: var(--danger); font-size: 24rpx; margin-bottom: 22rpx; overflow-wrap: anywhere; }
+.packing-empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 90rpx 12rpx; }
+.packing-empty__icon { display: flex; align-items: center; justify-content: center; width: 148rpx; height: 148rpx; border-radius: 50%; background: var(--action); margin-bottom: 32rpx; }
+.packing-empty__icon image { width: 72rpx; height: 72rpx; }
+.packing-empty__title { font-size: 31rpx; font-weight: 500; }
+.packing-empty__copy { font-size: 23rpx; color: var(--muted); margin-top: 14rpx; }
+.packing-form__name { margin: 18rpx 0 32rpx; }
+.packing-form__heading { display: flex; align-items: center; gap: 12rpx; color: var(--muted); font-size: 23rpx; margin-bottom: 16rpx; }
+.packing-form__optional { font-size: 20rpx; color: var(--muted); background: var(--muted-surface); padding: 2rpx 12rpx; border-radius: var(--choice-radius); }
+.packing-form__clear { min-height: 76rpx; display: flex; justify-content: flex-end; }
+.packing-form__error { margin: 0 0 16rpx; }

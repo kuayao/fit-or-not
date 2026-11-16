@@ -1,0 +1,62 @@
+.create-outfit { display: flex; align-items: center; gap: 7rpx; color: var(--primary); background: var(--soft); border-radius: var(--radius); min-height: 78rpx; padding: 0 22rpx; font-size: 24rpx; }
+.create-outfit .icon { width: 30rpx; height: 30rpx; }
+.outfit-calendar { background: var(--soft); border-radius: var(--panel-radius); padding: 22rpx 16rpx 14rpx; }
+.outfit-calendar__heading, .outfit-calendar__actions, .outfit-calendar__title { display: flex; align-items: center; }
+.outfit-calendar__heading { justify-content: space-between; gap: 8rpx; margin-bottom: 15rpx; }
+.outfit-calendar__title { gap: 10rpx; flex-shrink: 0; white-space: nowrap; font-size: 27rpx; font-weight: 500; }
+.calendar-icon { width: 30rpx; height: 30rpx; flex-shrink: 0; }
+.outfit-calendar__actions { gap: 4rpx; flex-shrink: 0; }
+.calendar-arrow { flex: 0 0 60rpx; width: 60rpx; min-width: 60rpx; max-width: 60rpx; height: 72rpx; padding: 0; margin: 0; line-height: normal; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; }
+.calendar-arrow::after, .library-icon::after { border: 0; }
+.calendar-expand { display: flex; align-items: center; justify-content: center; gap: 5rpx; flex-shrink: 0; white-space: nowrap; font-size: 23rpx; color: var(--primary); min-height: 72rpx; }
+.calendar-chevron { transform: rotate(90deg); width: 25rpx; height: 25rpx; }
+.calendar-chevron--up { transform: rotate(-90deg); }
+.outfit-calendar__grid { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 5rpx; text-align: center; }
+.outfit-calendar__weekdays { color: var(--muted); font-size: 21rpx; margin-bottom: 14rpx; }
+.outfit-day { min-width: 0; height: 154rpx; padding: 10rpx 2rpx; box-sizing: border-box; border-radius: var(--radius); font-size: 25rpx; display: flex; flex-direction: column; align-items: center; gap: 10rpx; }
+.outfit-day--today { color: var(--primary); }
+.outfit-day--selected { color: var(--on-primary); background: var(--primary); }
+.outfit-day__photo { width: 64rpx; height: 70rpx; max-width: 100%; }
+.outfit-day__dot { width: 7rpx; height: 7rpx; border-radius: 50%; background: var(--primary); margin-top: 20rpx; }
+.outfit-day--selected .outfit-day__dot { background: var(--on-primary); }
+.outfit-calendar__grid--month { row-gap: 4rpx; }
+.outfit-calendar__grid--month .outfit-day { height: 84rpx; padding: 4rpx 2rpx; gap: 6rpx; }
+.outfit-calendar__grid--month .outfit-day__number { display: flex; align-items: center; justify-content: center; width: 56rpx; height: 56rpx; flex-shrink: 0; border-radius: 50%; }
+.outfit-calendar__grid--month .outfit-day--selected { background: transparent; color: var(--ink); }
+.outfit-calendar__grid--month .outfit-day--selected .outfit-day__number { background: var(--primary); color: var(--on-primary); }
+.outfit-calendar__grid--month .outfit-day__dot { margin-top: 0; background: var(--primary); }
+.week-navigation { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; margin-top: 10rpx; color: var(--muted); font-size: 20rpx; }
+.week-navigation__link { padding: 11rpx 5rpx; color: var(--primary); }
+.calendar-state { padding: 30rpx 0; }
+.daily-outfit { display: flex; align-items: center; gap: 28rpx; border-radius: var(--panel-radius); background: var(--photo); padding: 23rpx; margin-bottom: 18rpx; }
+.daily-outfit__photos { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); width: 225rpx; flex-shrink: 0; }
+.daily-outfit__photo { width: 100%; height: 120rpx; }
+.daily-outfit__info { min-width: 0; flex: 1; }
+.daily-outfit__status { color: var(--primary); display: flex; align-items: center; gap: 5rpx; font-size: 21rpx; margin-bottom: 10rpx; }
+.daily-outfit__status .calendar-icon { width: 24rpx; height: 24rpx; }
+.daily-outfit__name { font-size: 29rpx; margin-bottom: 12rpx; overflow-wrap: anywhere; }
+.daily-outfit__note { font-size: 22rpx; color: var(--muted); margin-top: 12rpx; white-space: pre-wrap; overflow-wrap: anywhere; }
+.daily-outfit__edit { margin-top: 18rpx; display: flex; align-items: center; gap: 4rpx; font-size: 23rpx; color: var(--primary); }
+.daily-empty { background: var(--photo); border-radius: var(--panel-radius); padding: 35rpx 20rpx; display: flex; flex-direction: column; align-items: center; gap: 23rpx; font-size: 25rpx; }
+.daily-empty__icon { width: 48rpx; height: 48rpx; opacity: .65; }
+.add-record { display: flex; align-items: center; justify-content: center; gap: 6rpx; font-size: 23rpx; color: var(--primary); min-height: 72rpx; }
+.outfits-library-heading { margin-top: 0; }
+.outfits-library-heading .count-note { margin-left: 10rpx; font-weight: 400; }
+.outfits-library-actions { display: flex; align-items: center; gap: 16rpx; }
+.library-icon { width: 66rpx; min-width: 66rpx; height: 72rpx; padding: 0; margin: 0; display: flex; align-items: center; justify-content: center; background: transparent; border: 0; }
+.favorite-filter { display: flex; align-items: center; gap: 5rpx; font-size: 23rpx; color: var(--muted); min-height: 72rpx; }
+.favorite-filter--selected { color: var(--primary); }
+.outfit-card { min-width: 0; }
+.outfit-cover { position: relative; width: 100%; aspect-ratio: 3 / 4; background: var(--photo); border-radius: var(--panel-radius); overflow: hidden; }
+.outfit-cover__image { width: 100%; height: 100%; display: block; }
+.outfit-cover__layer { position: absolute; }
+.outfit-name { font-size: 25rpx; margin: 17rpx 2rpx 8rpx; overflow-wrap: anywhere; }
+.outfits-empty { padding: 50rpx 10rpx; }
+.outfits-empty .empty-title { font-size: 29rpx; margin-bottom: 25rpx; }
+.outfits-empty .empty-icon { width: 60rpx; height: 60rpx; margin-bottom: 23rpx; }
+.create-option { display: flex; align-items: center; gap: 20rpx; padding: 26rpx 0; min-height: 96rpx; box-sizing: border-box; border-bottom: 1px solid var(--line); font-size: 29rpx; }
+.create-option text { flex: 1; }
+.outfits-heading { position: sticky; top: 0; z-index: 2; background: var(--bg); min-height: var(--touch-height); padding: 12rpx 0; margin-bottom: 24rpx; }
+.outfits-tabs { display: flex; align-items: center; gap: 32rpx; flex-shrink: 0; }
+.outfits-tab { display: flex; align-items: center; justify-content: center; min-height: var(--touch-height); box-sizing: border-box; border-bottom: 3px solid transparent; font-size: 36rpx; color: var(--muted); }
+.outfits-tab--selected { border-bottom-color: var(--primary); color: var(--primary); font-weight: 600; }

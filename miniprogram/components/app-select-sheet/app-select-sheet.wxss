@@ -1,0 +1,2 @@
+.choice-scroll { height: 50vh; }
+.choice-error { padding: 8rpx 0; }

@@ -1,0 +1,87 @@
+<view class="set-page {{edit ? 'set-page--editing' : ''}}">
+  <view wx:if="{{loading}}" class="state">正在加载…</view>
+  <view wx:if="{{error}}" class="error" bindtap="onRetry">{{error}} · 点击重试</view>
+  <view wx:if="{{record || (!loading && !error)}}" class="set-sheet">
+    <view class="set-summary">
+      <view wx:if="{{edit}}" class="set-cover-input" bindtap="onCover" aria-role="button" aria-label="{{coverUrl ? '更换整套图' : '添加整套图'}}" aria-disabled="{{busy}}">
+        <image wx:if="{{coverUrl}}" class="set-cover" src="{{coverUrl}}" data-url="{{coverUrl}}" binderror="onImageError" mode="aspectFit" />
+        <view wx:else class="set-cover-placeholder"><image class="set-cover-placeholder__icon" src="/assets/icons/camera.svg" mode="aspectFit" /><text>添加整套图</text></view>
+        <view wx:if="{{coverUrl}}" class="set-cover-edit"><image class="set-action-icon" src="/assets/icons/edit.svg" mode="aspectFit" /></view>
+      </view>
+      <image wx:elif="{{coverUrl}}" class="set-cover" src="{{coverUrl}}" data-url="{{coverUrl}}" binderror="onImageError" mode="aspectFit" bindtap="onPreview" aria-label="查看整套图" />
+      <view wx:else class="set-cover set-cover--preview"><block wx:for="{{members}}" wx:key="id"><image wx:if="{{index < 4}}" class="set-cover__member" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" /></block></view>
+      <view class="set-summary__body">
+        <block wx:if="{{!edit}}">
+          <view class="set-name">{{name}}</view><view class="set-summary__count">{{members.length}} 件单品</view>
+          <view class="set-edit-action"><t-button t-class="set-small-button" class="button-block" block size="small" bind:tap="onEdit"><view class="set-action-content"><image class="set-action-icon" src="/assets/icons/edit.svg" mode="aspectFit" />编辑套装</view></t-button></view>
+        </block>
+        <block wx:else>
+          <view class="set-label">套装名称</view><input class="set-name-input" value="{{name}}" maxlength="60" placeholder="为套装起个名字" disabled="{{busy}}" bindinput="onName" />
+          <view wx:if="{{!record}}" class="set-existing-action"><t-button t-class="set-small-button" class="button-block" block size="small" disabled="{{busy}}" bind:tap="onChooseExisting">加入已有套装</t-button></view>
+        </block>
+      </view>
+    </view>
+    <view class="set-section-head">
+      <view><text class="set-section-title">套装单品</text><text class="set-section-count">{{memberIds.length}} 件</text></view>
+      <view wx:if="{{edit}}" class="set-add-action"><t-button t-class="set-small-button" class="button-block" block size="small" disabled="{{busy}}" bind:tap="onOpenClothes"><view class="set-action-content"><image class="set-action-icon" src="/assets/icons/plus.svg" mode="aspectFit" />添加单品</view></t-button></view>
+    </view>
+    <scroll-view wx:if="{{edit && members.length}}" class="set-selected-scroll" scroll-x show-scrollbar="{{false}}">
+      <view class="set-selected-row"><view wx:for="{{members}}" wx:key="id" class="set-selected-item">
+        <view class="set-selected-item__visual"><image class="set-selected-item__image" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" data-id="{{item.id}}" bindtap="onMember" /><button class="set-remove" disabled="{{busy}}" data-id="{{item.id}}" bindtap="onToggleMember" aria-label="移出{{item.name}}"><image class="set-remove__icon" src="/assets/icons/close.svg" mode="aspectFit" /></button></view>
+        <view class="set-selected-item__name">{{item.name}}</view>
+      </view></view>
+    </scroll-view>
+    <view wx:elif="{{edit}}" class="set-empty-members">尚未选择单品</view>
+    <view wx:else class="set-grid">
+      <view wx:for="{{members}}" wx:key="id" class="set-member" data-id="{{item.id}}" bindtap="onMember" aria-role="button">
+        <image class="set-member-image" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" /><view class="set-member__name">{{item.name}}</view><view class="set-member__category">{{item.categoryName}}{{item.status === 'archived' ? ' · 已归档' : ''}}</view>
+      </view>
+    </view>
+    <view wx:if="{{edit && record}}" class="set-dissolve-action"><t-button t-class="set-small-button ui-button--danger" class="button-block" block size="small" disabled="{{busy}}" bind:tap="onDissolve">解散套装</t-button></view>
+  </view>
+  <view wx:if="{{edit}}" class="set-footer">
+    <view wx:if="{{record}}" class="set-footer__cancel"><t-button t-class="set-footer-button" class="button-block" block disabled="{{busy}}" bind:tap="onCancelEdit">取消修改</t-button></view>
+    <view class="set-footer__save"><t-button t-class="set-footer-button set-save-button" class="button-block" block theme="primary" loading="{{busy}}" disabled="{{busy || loading}}" bind:tap="onSave">保存套装</t-button></view>
+  </view>
+</view>
+<app-sheet visible="{{picking}}" title="选择单品" size="large" bind:close="onCloseClothes">
+  <view class="set-picker">
+    <view class="search set-search"><image class="set-search__icon" src="/assets/icons/search.svg" mode="aspectFit" /><input class="input grow" value="{{q}}" maxlength="100" bindinput="onSearchInput" bindconfirm="onSearch" placeholder="在当前分类中搜索" confirm-type="search" /></view>
+    <view wx:if="{{taxonomyLoading}}" class="set-picker__status">正在加载分类…</view>
+    <view wx:elif="{{taxonomyError}}" class="error" bindtap="onRetryCategories">{{taxonomyError}} · 点击重试</view>
+    <scroll-view wx:else class="set-categories" scroll-x show-scrollbar="{{false}}" aria-label="一级分类">
+      <view class="set-categories__row"><button class="set-category {{!rootCategoryId ? 'set-category--selected' : ''}}" data-id="" bindtap="onRootCategory" aria-pressed="{{!rootCategoryId}}">全部</button><button wx:for="{{rootCategories}}" wx:key="id" class="set-category {{rootCategoryId === item.id ? 'set-category--selected' : ''}}" data-id="{{item.id}}" bindtap="onRootCategory" aria-pressed="{{rootCategoryId === item.id}}">{{item.name}}</button></view>
+    </scroll-view>
+    <scroll-view wx:if="{{rootCategoryId}}" class="set-categories set-categories--children" scroll-x show-scrollbar="{{false}}" aria-label="二级分类">
+      <view class="set-categories__row"><button class="set-category {{categoryId === rootCategoryId ? 'set-category--selected' : ''}}" data-id="{{rootCategoryId}}" bindtap="onSubCategory" aria-pressed="{{categoryId === rootCategoryId}}">全部</button><button wx:for="{{subCategories}}" wx:key="id" class="set-category {{categoryId === item.id ? 'set-category--selected' : ''}}" data-id="{{item.id}}" bindtap="onSubCategory" aria-pressed="{{categoryId === item.id}}">{{item.name}}</button></view>
+    </scroll-view>
+    <view class="set-picker__count">{{clothesLoading && !clothes.length ? '正在加载衣物…' : '共 ' + total + ' 件'}}</view>
+    <scroll-view class="set-picker__list" scroll-y enhanced show-scrollbar="{{false}}" lower-threshold="160" bindscrolltolower="onMoreClothes" aria-label="可选衣物列表">
+      <view class="set-grid">
+        <view wx:for="{{clothes}}" wx:key="id" class="set-choice {{item.selected ? 'set-choice--selected' : ''}}" data-id="{{item.id}}" bindtap="onToggleMember" aria-role="button" aria-pressed="{{item.selected}}">
+          <view class="set-choice__visual"><image class="set-member-image" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" /><view class="set-choice__mark"><image wx:if="{{item.selected}}" class="set-choice__check" src="/assets/icons/check.svg" mode="aspectFit" /></view></view>
+          <view class="set-member__name">{{item.name}}</view><view class="set-member__category">{{item.categoryName}}</view><view class="set-choice__status">{{item.selected ? '已选择' : item.setId ? '已属于套装' : ''}}</view>
+        </view>
+      </view>
+      <view wx:if="{{clothesLoading && clothes.length}}" class="state">正在加载…</view>
+      <view wx:if="{{clothesError}}" class="set-picker__retry"><view class="error">{{clothesError}}</view><t-button t-class="set-small-button" class="button-block" block size="small" bind:tap="onRetryClothes">重新加载</t-button></view>
+      <view wx:if="{{!clothesLoading && !clothesError && !clothes.length}}" class="state">当前分类下没有符合条件的衣物</view>
+    </scroll-view>
+  </view>
+  <view slot="footer" class="set-picker-footer"><t-button t-class="set-footer-button set-save-button" class="button-block" block theme="primary" bind:tap="onCloseClothes">完成选择 · {{memberIds.length}} 件</t-button></view>
+</app-sheet>
+<app-sheet visible="{{choosing}}" title="选择套装" size="large" bind:close="onCloseChoices">
+  <view class="set-picker">
+    <view class="set-picker__count">{{choicesLoading && !choices.length ? '正在加载套装…' : '共 ' + choicesTotal + ' 套'}}</view>
+    <scroll-view class="set-picker__list" scroll-y enhanced show-scrollbar="{{false}}" lower-threshold="160" bindscrolltolower="onMoreChoices" aria-label="已有套装列表">
+      <view class="set-set-list"><view wx:for="{{choices}}" wx:key="id" class="set-set-card" data-id="{{item.id}}" bindtap="onChooseSet" aria-role="button" aria-label="{{item.name}}，{{item.memberCount}} 件单品">
+        <image class="set-set-card__cover" src="{{item.imageUrl || item.previews[0].url}}" data-url="{{item.imageUrl || item.previews[0].url}}" binderror="onImageError" mode="aspectFit" />
+        <view class="set-set-card__body"><view class="set-set-card__heading"><view class="set-member__name">{{item.name}}</view><image class="set-action-icon" src="/assets/icons/chevron.svg" mode="aspectFit" /></view><view class="set-label">{{item.memberCount}} 件单品</view><view class="set-set-card__previews"><image wx:for="{{item.previews}}" wx:for-item="preview" wx:key="id" class="set-set-card__preview" src="{{preview.url}}" data-url="{{preview.url}}" binderror="onImageError" mode="aspectFit" /></view></view>
+      </view></view>
+      <view wx:if="{{choicesLoading && choices.length}}" class="state">正在加载套装…</view>
+      <view wx:if="{{choicesError}}" class="set-picker__retry"><view class="error">{{choicesError}}</view><t-button t-class="set-small-button" class="button-block" block size="small" bind:tap="onRetryChoices">重新加载</t-button></view>
+      <view wx:if="{{!choicesLoading && !choicesError && !choices.length}}" class="state">还没有可加入的套装</view>
+    </scroll-view>
+  </view>
+  <view slot="footer" class="set-picker-footer" />
+</app-sheet>

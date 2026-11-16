@@ -1,0 +1,22 @@
+.wear-preview { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12rpx; background: #F8FAFC; border-radius: 23rpx; padding: 20rpx; width: 85%; margin: 0 auto; box-sizing: border-box; }
+.preview-item { width: 100%; height: 290rpx; }
+.wear-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20rpx; }
+
+.wear-grid .card-image { height: 280rpx; }
+.wear-outfit-cover { position: relative; z-index: 0; width: 100%; aspect-ratio: 3 / 4; overflow: hidden; border-radius: var(--sheet-option-radius); }
+.wear-outfit-cover__image { display: block; width: 100%; height: 100%; }
+.wear-outfit-cover__layer { position: absolute; }
+.wear-picker-tools { position: sticky; top: 0; z-index: 1; padding-bottom: 12rpx; background: var(--bg); }
+.wear-picker-tabs { display: flex; margin-bottom: 20rpx; border-bottom: 1px solid var(--line); }
+.wear-picker-tab { flex: 1; display: flex; align-items: center; justify-content: center; min-height: var(--touch-height); box-sizing: border-box; border-bottom: 3px solid transparent; color: var(--muted); }
+.wear-picker-tab--selected { color: var(--primary); border-bottom-color: var(--primary); font-weight: 500; }
+.wear-picker-search { margin-bottom: 20rpx; padding-right: 8rpx; gap: 0; }
+.wear-picker-search .input { width: 0; }
+.wear-picker-search .icon-button { width: 60rpx; min-width: 60rpx; max-width: 60rpx; height: 64rpx; flex-shrink: 0; }
+.wear-categories { width: 100%; height: 76rpx; white-space: nowrap; }
+.wear-categories .chip { min-height: 64rpx; margin-right: var(--choice-gap); padding: 8rpx 20rpx; gap: 8rpx; border-radius: var(--panel-radius); vertical-align: top; }
+.wear-categories .icon { flex-shrink: 0; }
+.wear-subcategories { margin-top: 4rpx; height: 64rpx; }
+.wear-subcategories .chip { min-height: 56rpx; font-size: 22rpx; }
+.wear-picker-count { margin: 4rpx 0 16rpx; color: var(--muted); font-size: 23rpx; }
+.wear-picker-more { display: block; margin-top: 20rpx; }

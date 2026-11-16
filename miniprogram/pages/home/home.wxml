@@ -1,0 +1,48 @@
+<view class="page page--tab home-page">
+  <app-weather wx:if="{{ready}}" class="home-weather" bind:weatherchange="onWeatherChange" bind:citychange="onCityChange" />
+  <view wx:if="{{weatherReady}}" class="recommendations" aria-live="polite">
+    <view class="recommendations__heading"><text class="recommendations__title">今日推荐</text><text class="recommendations__ai">AI</text></view>
+    <view wx:if="{{recommendation.summary}}" class="recommendations__summary">{{recommendation.summary}}</view>
+    <view wx:if="{{loading && !recommendation}}" class="recommendations__loading">
+      <view class="recommendations__loading-label">正在挑选适合今天的衣服…</view>
+      <view class="recommendations__skeleton-grid"><view class="recommendations__skeleton" /><view class="recommendations__skeleton" /><view class="recommendations__skeleton" /></view>
+      <view class="recommendations__skeleton recommendations__skeleton--outfit" />
+    </view>
+    <view wx:if="{{error}}" class="recommendations__state"><text>{{error}}</text><t-button t-class="ui-button" theme="primary" size="small" loading="{{loading}}" disabled="{{loading}}" bind:tap="onRetry">重新尝试</t-button></view>
+    <view wx:if="{{recommendation.status === 'empty-wardrobe'}}" class="recommendations__state">
+      <image class="recommendations__empty-icon" src="/assets/icons/shirt.svg" mode="aspectFit" />
+      <text class="recommendations__state-title">衣橱还是空的</text><text>添几件衣服，开启每天的穿搭灵感</text>
+      <t-button t-class="ui-button" theme="primary" size="small" bind:tap="onAddClothing">添加衣物</t-button>
+    </view>
+    <view wx:if="{{recommendation.status === 'no-matches'}}" class="recommendations__state"><text class="recommendations__state-title">暂时没有合适的推荐</text><text>衣橱里还没有适合今天气温的衣物</text></view>
+    <block wx:if="{{recommendation.status === 'ready'}}">
+      <view class="recommendations__section-head"><text class="recommendations__section-title">适合今天的单品</text><text wx:if="{{items.length}}" class="recommendations__meta">{{items.length}} 件</text></view>
+      <scroll-view wx:if="{{items.length}}" class="recommendations__items" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="recommendations__item-track">
+          <button wx:for="{{items}}" wx:key="clothingId" class="recommended-item" data-id="{{item.clothingId}}" bindtap="onClothing" aria-label="查看{{item.name}}">
+            <view class="recommended-item__picture"><image class="recommended-item__photo" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" /></view>
+            <view class="recommended-item__name">{{item.name}}</view><view class="recommended-item__reason">{{item.reason}}</view>
+          </button>
+        </view>
+      </scroll-view>
+      <view wx:else class="recommendations__empty-section">暂无单品推荐</view>
+      <view class="recommendations__section-head"><text class="recommendations__section-title">可以这样搭</text><text wx:if="{{outfits.length}}" class="recommendations__meta">{{outfitIndex + 1}} / {{outfits.length}}</text></view>
+      <swiper wx:if="{{outfits.length}}" class="recommended-outfits" current="{{outfitIndex}}" circular="{{false}}" autoplay="{{false}}" next-margin="{{outfits.length > 1 ? '36rpx' : '0rpx'}}" bindchange="onOutfitChange" aria-label="推荐穿搭">
+        <swiper-item wx:for="{{outfits}}" wx:for-item="outfit" wx:key="id" class="recommended-outfit__slide {{outfits.length > 1 ? 'recommended-outfit__slide--multiple' : ''}}">
+          <view class="recommended-outfit">
+            <view class="recommended-outfit__canvas {{outfit.items.length === 2 || outfit.items.length === 4 ? 'recommended-outfit__canvas--two-columns' : ''}} {{outfit.items.length > 3 ? 'recommended-outfit__canvas--two-rows' : ''}}">
+              <image wx:for="{{outfit.items}}" wx:key="clothingId" class="recommended-outfit__image" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" />
+            </view>
+            <view class="recommended-outfit__body">
+              <view class="recommended-outfit__name">{{outfit.name}}</view><view class="recommended-outfit__reason">{{outfit.reason}}</view>
+              <view class="recommended-outfit__actions"><text class="recommended-outfit__count">{{outfit.items.length}} 件单品</text><view class="recommended-outfit__view"><t-button t-class="ui-button" theme="primary" size="small" block data-id="{{outfit.id}}" bind:tap="onOutfit">查看搭配</t-button></view></view>
+            </view>
+          </view>
+        </swiper-item>
+      </swiper>
+      <view wx:else class="recommendations__empty-section">暂时还无法组成完整穿搭</view>
+    </block>
+    <view wx:if="{{imageError}}" class="recommendations__image-error">{{imageError}}</view>
+    <view wx:if="{{recommendation && recommendation.status !== 'empty-wardrobe'}}" class="recommendations__updated">{{loading ? '正在更新推荐…' : updatedLabel + ' 更新'}}</view>
+  </view>
+</view>

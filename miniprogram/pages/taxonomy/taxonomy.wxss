@@ -1,0 +1,4 @@
+.taxonomy-tabs .category-row { display: inline-flex; min-width: 100%; vertical-align: top; }
+.taxonomy-heading { display: flex; justify-content: space-between; align-items: center; gap: 16rpx; margin-top: 26rpx; }
+.taxonomy-heading .section-title { margin: 0; }
+.taxonomy-hint { font-size: 23rpx; color: var(--muted); margin: 0 0 20rpx; }

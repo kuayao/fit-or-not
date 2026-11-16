@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "出行清单",
+  "onReachBottomDistance": 200,
+  "usingComponents": {
+    "t-button": "tdesign-miniprogram/button/button",
+    "app-sheet": "/components/app-sheet/app-sheet",
+    "app-date-sheet": "/components/app-date-sheet/app-date-sheet"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "设置与数据",
+  "usingComponents": {
+    "t-button": "tdesign-miniprogram/button/button",
+    "app-sheet": "/components/app-sheet/app-sheet"
+  }
+}

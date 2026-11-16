@@ -1,0 +1,74 @@
+.outfit-editor { width: 100%; box-sizing: border-box; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: var(--photo); }
+.editor-content { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; padding: 0 32rpx; }
+.outfit-editor--busy .editor-content { pointer-events: none; }
+.editor-heading { display: flex; align-items: center; gap: 16rpx; height: 102rpx; flex-shrink: 0; }
+.editor-name { flex: 1; min-width: 0; position: relative; }
+.editor-name__input { height: 88rpx; padding-right: 54rpx; font-size: 36rpx; font-weight: 500; }
+.editor-name__icon { position: absolute; right: 8rpx; top: 29rpx; width: 30rpx; height: 30rpx; pointer-events: none; opacity: .65; }
+button.editor-clear, button.canvas-action, button.library-tab, button.clothing-filter, button.closet-item, button.closet-more, button.background-option, button.metadata-option, button.editor-link, button.canvas-handle, button.layer-select, button.layer-action { margin: 0; padding: 0; width: auto; min-width: 0; max-width: 100%; font-weight: 400; line-height: 1.5; border: 0; background: transparent; color: var(--ink); box-sizing: border-box; }
+button.editor-clear::after, button.canvas-action::after, button.library-tab::after, button.clothing-filter::after, button.closet-item::after, button.closet-more::after, button.background-option::after, button.metadata-option::after, button.editor-link::after, button.canvas-handle::after, button.layer-select::after, button.layer-action::after { border: 0; }
+button.editor-clear { flex-shrink: 0; min-height: 88rpx; padding: 0 12rpx; display: flex; align-items: center; color: var(--primary); font-size: 24rpx; }
+.canvas-stage { flex: 1; min-height: 160rpx; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.outfit-canvas { position: relative; height: 100%; aspect-ratio: 3 / 4; flex-shrink: 0; overflow: hidden; border-radius: 24rpx; }
+.canvas-item { position: absolute; transform-origin: center center; }
+.canvas-selection { position: absolute; transform-origin: center center; border: 1px solid var(--accent); box-sizing: border-box; z-index: 101; }
+button.canvas-handle { position: absolute; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
+button.canvas-handle--rotate { left: 0; top: 0; }
+button.canvas-handle--remove { right: 0; top: 0; }
+button.canvas-handle--resize { right: 0; bottom: 0; }
+.canvas-handle__icon { width: 28px; height: 28px; padding: 6px; box-sizing: border-box; border-radius: 50%; background: var(--bg); box-shadow: 0 2px 8px #29485F15; }
+.canvas-empty, .canvas-state { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20rpx; text-align: center; padding: 24rpx; font-size: 24rpx; color: var(--muted); }
+.canvas-empty { pointer-events: none; }
+.canvas-empty__icon { width: 72rpx; height: 72rpx; opacity: .5; }
+.canvas-notice { position: absolute; bottom: 22rpx; left: 16rpx; right: 16rpx; z-index: 102; padding: 16rpx 20rpx; border-radius: var(--choice-radius); background: var(--soft); color: var(--danger); text-align: center; font-size: 23rpx; }
+.canvas-footer { min-width: 0; height: 78rpx; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 8rpx; }
+.canvas-caption { flex: 1 1 0; min-width: 0; font-size: 21rpx; color: var(--muted); white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.canvas-actions { display: flex; flex-shrink: 0; gap: 4rpx; }
+button.canvas-action { display: flex; align-items: center; gap: 7rpx; min-width: 88rpx; min-height: 44px; padding: 0 9rpx; white-space: nowrap; color: var(--primary); font-size: 22rpx; }
+.canvas-action__icon { width: 30rpx; height: 30rpx; }
+button.editor-clear[disabled], button.canvas-action[disabled], button.layer-action[disabled] { opacity: .35; background: transparent; color: var(--muted); }
+.editor-library { flex-shrink: 0; height: 358rpx; background: var(--bg); border-top: 1px solid var(--line); margin: 0 -32rpx; padding: 0 32rpx; }
+.library-heading { height: 82rpx; display: flex; align-items: center; justify-content: space-between; }
+.library-tabs { min-width: 0; height: 100%; display: flex; gap: 44rpx; }
+button.library-tab { position: relative; height: 100%; padding: 0 2rpx; min-width: 56rpx; font-size: 28rpx; color: var(--muted); display: flex; align-items: center; justify-content: center; }
+button.library-tab--selected { color: var(--primary); font-weight: 500; }
+button.library-tab--selected::after { content: ''; position: absolute; bottom: 0; left: 25%; width: 50%; height: 3rpx; background: var(--primary); border-radius: 3rpx; }
+.selection-count { font-size: 21rpx; color: var(--muted); }
+.clothing-filters { height: 76rpx; width: 100%; white-space: nowrap; }
+.clothing-filters__row { display: inline-flex; min-width: 100%; box-sizing: border-box; align-items: center; gap: 14rpx; height: 76rpx; }
+button.clothing-filter { flex-shrink: 0; white-space: nowrap; min-height: 58rpx; padding: 10rpx 24rpx; border-radius: 16rpx; color: var(--muted); background: var(--photo); font-size: 22rpx; }
+button.clothing-filter--selected { color: var(--primary); background: var(--soft); }
+.filter-status { color: var(--muted); font-size: 21rpx; }
+.closet-scroll { width: 100%; height: 200rpx; }
+.closet-strip { display: flex; gap: 18rpx; padding: 14rpx 0 20rpx; min-height: 166rpx; }
+button.closet-item, .closet-skeleton { width: 140rpx; min-width: 140rpx; max-width: 140rpx; box-sizing: border-box; height: 166rpx; flex-shrink: 0; border: 1px solid transparent; border-radius: 20rpx; background: var(--photo); }
+button.closet-item { position: relative; padding: 10rpx; }
+button.closet-item--selected { border-color: var(--action-line); background: var(--soft); }
+.closet-item__image { width: 100%; height: 100%; }
+.closet-item__check { position: absolute; top: 6rpx; right: 6rpx; width: 32rpx; height: 32rpx; padding: 6rpx; box-sizing: border-box; background: var(--primary); border-radius: 50%; }
+.closet-item__check image { width: 100%; height: 100%; filter: brightness(0) invert(1); }
+.closet-skeleton { background: var(--line); }
+.closet-feedback { width: 100%; flex-shrink: 0; height: 166rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--muted); font-size: 23rpx; }
+.closet-feedback--append { width: 230rpx; }
+button.closet-more { height: 166rpx; width: 110rpx; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 23rpx; color: var(--primary); }
+button.editor-link { min-height: 44px; padding: 10rpx; display: inline-flex; align-items: center; justify-content: center; font-size: 24rpx; color: var(--primary); flex-shrink: 0; }
+.background-options { height: 276rpx; display: flex; align-items: center; justify-content: center; gap: 34rpx; }
+button.background-option { width: 84rpx; height: 84rpx; flex-shrink: 0; border-radius: 50%; border: 7rpx solid var(--bg); outline: 1px solid var(--line); display: flex; align-items: center; justify-content: center; }
+button.background-option--selected { outline: 2px solid var(--accent); }
+.background-option__check { width: 34rpx; height: 34rpx; }
+.editor-metadata { height: 92rpx; flex-shrink: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: center; gap: 10rpx; margin: 0 -32rpx; padding: 0 32rpx; background: var(--bg); border-top: 1px solid var(--line); }
+button.metadata-option { display: flex; align-items: center; justify-content: center; gap: 10rpx; width: 100%; min-height: 88rpx; font-size: 23rpx; }
+.metadata-option__label { color: var(--muted); flex-shrink: 0; }
+.metadata-option__value { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.metadata-option__arrow { width: 24rpx; height: 24rpx; flex-shrink: 0; opacity: .7; }
+.editor-save { flex-shrink: 0; padding: 16rpx 32rpx calc(20rpx + env(safe-area-inset-bottom)); background: var(--bg); }
+.sheet-load-error { color: var(--muted); font-size: 24rpx; }
+.layer-list { display: flex; flex-direction: column; gap: 12rpx; }
+.layer-row { display: flex; align-items: center; gap: 8rpx; border-radius: var(--choice-radius); padding: 8rpx 12rpx; }
+.layer-row--selected { background: var(--soft); }
+button.layer-select { flex: 1; display: flex; align-items: center; gap: 18rpx; text-align: left; min-height: 96rpx; }
+.layer-image { width: 72rpx; height: 88rpx; flex-shrink: 0; }
+.layer-name { flex: 1; min-width: 0; font-size: 25rpx; overflow-wrap: anywhere; }
+button.layer-action { min-height: 88rpx; padding: 0 12rpx; font-size: 23rpx; color: var(--primary); flex-shrink: 0; }
+@media (max-width: 360px) { button.canvas-action { padding: 0 6rpx; gap: 4rpx; } button.metadata-option { gap: 6rpx; font-size: 22rpx; } }
+@media (max-height: 600px) { .editor-heading { height: 88rpx; } .editor-library { height: 306rpx; } .closet-scroll { height: 148rpx; } .closet-strip { padding: 4rpx 0 12rpx; min-height: 148rpx; } button.closet-item, .closet-skeleton, .closet-feedback, button.closet-more { height: 132rpx; } .background-options { height: 224rpx; } }

@@ -1,0 +1,7 @@
+<t-popup visible="{{visible}}" placement="bottom" prevent-scroll-through close-on-overlay-click="{{!busy}}" overlay-props="{{overlay}}" bind:visible-change="onClose" t-class="app-sheet-popup">
+  <view class="app-sheet app-sheet--{{size}}">
+    <view class="app-sheet__header"><view class="app-sheet__title">{{title}}</view><button class="icon-button" disabled="{{busy}}" bindtap="onClose" aria-label="关闭"><image class="icon" src="/assets/icons/close.svg" mode="aspectFit" /></button></view>
+    <scroll-view class="app-sheet__body {{scrollable ? 'app-sheet__body--scrollable' : ''}}" scroll-y="{{scrollable}}"><slot /></scroll-view>
+    <view class="app-sheet__footer"><slot name="footer" /></view>
+  </view>
+</t-popup>

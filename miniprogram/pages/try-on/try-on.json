@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "虚拟试穿",
+  "usingComponents": {
+    "t-button": "tdesign-miniprogram/button/button"
+  }
+}

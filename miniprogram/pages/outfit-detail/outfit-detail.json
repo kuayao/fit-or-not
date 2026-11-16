@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "搭配详情",
+  "usingComponents": {
+    "t-button": "tdesign-miniprogram/button/button",
+    "app-sheet": "/components/app-sheet/app-sheet",
+    "outfit-category-bar": "/components/outfit-category-bar/outfit-category-bar"
+  }
+}

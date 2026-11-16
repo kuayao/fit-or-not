@@ -1,0 +1,3 @@
+.color-options { display: flex; gap: 23rpx; flex-wrap: wrap; margin: 17rpx 0; padding: 4rpx; }
+.color-option { width: 62rpx; height: 62rpx; border-radius: 50%; border: 6rpx solid var(--bg); outline: 1px solid var(--action-line); box-sizing: border-box; }
+.color-option--selected { outline: 2px solid var(--primary); }

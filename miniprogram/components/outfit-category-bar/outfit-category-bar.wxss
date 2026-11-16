@@ -1,0 +1,11 @@
+.outfit-categories { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: var(--choice-gap); margin-bottom: 28rpx; }
+.outfit-category { width: auto; min-width: 0; flex: 0 0 auto; margin: 0; padding: 12rpx 23rpx; min-height: 72rpx; max-width: 100%; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 6rpx; background: var(--photo); color: var(--muted); border: 1px solid transparent; border-radius: var(--choice-radius); font-size: 24rpx; line-height: 1.5; overflow-wrap: anywhere; }
+.outfit-category::after { border: 0; }
+.outfit-category--selected { color: var(--primary); border-color: var(--primary); background: var(--soft); }
+.outfit-category--add { background: var(--bg); color: var(--primary); border: 1px dashed var(--action-line); }
+.category-plus { width: 25rpx; height: 25rpx; flex-shrink: 0; }
+.category-status { font-size: 23rpx; color: var(--muted); padding-bottom: 18rpx; }
+.outfit-categories--list { flex-direction: column; margin-bottom: 0; }
+.outfit-categories--list .outfit-category { width: 100%; justify-content: space-between; min-height: var(--sheet-option-height); border-radius: var(--sheet-option-radius); padding: 22rpx 24rpx; font-size: var(--sheet-option-size); text-align: left; }
+.outfit-categories--list .outfit-category--add { justify-content: center; }
+.category-check { width: 32rpx; height: 32rpx; flex-shrink: 0; }

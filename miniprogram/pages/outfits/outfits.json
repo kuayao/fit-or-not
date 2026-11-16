@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "搭搭不搭搭",
+  "onReachBottomDistance": 200,
+  "usingComponents": {
+    "t-button": "tdesign-miniprogram/button/button",
+    "app-sheet": "/components/app-sheet/app-sheet",
+    "outfit-category-bar": "/components/outfit-category-bar/outfit-category-bar"
+  }
+}

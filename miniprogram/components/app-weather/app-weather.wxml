@@ -1,0 +1,53 @@
+<view class="weather">
+  <view class="weather-card" aria-live="polite">
+    <view class="weather-card__content">
+      <button class="weather-card__city" bindtap="onOpenCity" hover-class="weather-card__pressed" aria-label="选择天气城市">
+        <text class="weather-card__city-text">{{loaded ? '实况 · ' + city + locationNote : cityLabel}}</text>
+        <image class="weather-card__pin" src="/assets/icons/location.svg" mode="aspectFit" />
+      </button>
+      <block wx:if="{{loaded}}">
+        <view class="weather-card__main"><text class="weather-card__temperature">{{temperature}}°C</text><text class="weather-card__condition">{{weatherText}}</text></view>
+        <view class="weather-card__details">湿度 {{humidity}}%<text class="weather-card__wind">{{windDirection}} {{windPower}}级</text></view>
+      </block>
+      <view wx:elif="{{loading}}" class="weather-card__placeholder"><view class="weather-card__skeleton" /><text>正在获取天气…</text></view>
+      <view wx:else class="weather-card__placeholder"><text class="weather-card__unavailable">天气暂不可用</text><text>选择城市或点击重试</text></view>
+    </view>
+    <view class="weather-card__actions">
+      <view wx:if="{{loaded}}" class="weather-card__orb"><image class="weather-card__icon" src="/assets/icons/{{weatherIcon}}.svg" mode="aspectFit" /></view>
+      <button class="weather-card__refresh" disabled="{{loading}}" bindtap="onRefresh" hover-class="weather-card__pressed" aria-label="{{loading ? '正在更新天气' : '刷新天气'}}"><image class="weather-card__refresh-icon {{loading ? 'weather-card__refresh-icon--loading' : ''}}" src="/assets/icons/refresh.svg" mode="aspectFit" /></button>
+    </view>
+  </view>
+  <view wx:if="{{loaded}}" class="weather-meta">
+    <text class="weather-meta__updated">{{stale ? '更新失败 · ' : ''}}{{updatedLabel}} 更新</text>
+    <button class="weather-meta__toggle" bindtap="onToggleForecast" aria-expanded="{{expanded}}">三日预报<image class="weather-meta__chevron {{expanded ? 'weather-meta__chevron--open' : ''}}" src="/assets/icons/chevron.svg" mode="aspectFit" /></button>
+  </view>
+  <view wx:if="{{loaded && loading}}" class="weather-status">正在更新…</view>
+  <view wx:if="{{loaded && expanded}}" class="weather-forecast">
+    <view class="weather-forecast__days">
+      <view wx:for="{{forecast}}" wx:key="date" class="weather-forecast__day">
+        <text class="weather-forecast__label">{{item.label}}</text><text class="weather-forecast__date">{{item.date}}</text>
+        <image class="weather-forecast__icon" src="/assets/icons/{{item.icon}}.svg" mode="aspectFit" />
+        <text class="weather-forecast__condition">{{item.textDay}}</text><text class="weather-forecast__temperature">日间 {{item.tempDay}}°</text>
+        <text class="weather-forecast__night">夜间 {{item.tempNight}}° · {{item.textNight}}</text>
+      </view>
+    </view>
+    <view class="weather-forecast__updated">预报更新于 {{forecastUpdatedLabel}}</view>
+  </view>
+</view>
+
+<app-sheet visible="{{cityOpen}}" title="选择城市" scrollable size="large" bind:close="onCloseCity">
+  <view class="city-search">
+    <view class="city-search__field"><image class="city-search__icon" src="/assets/icons/search.svg" mode="aspectFit" /><input class="input city-search__input" value="{{cityQuery}}" maxlength="100" placeholder="城市、区县或拼音" confirm-type="search" bindinput="onCityQuery" bindconfirm="onSearchCities" /></view>
+    <view class="city-search__action"><t-button t-class="ui-button" theme="primary" size="small" block custom-style="display:flex;width:100%" loading="{{cityLoading}}" disabled="{{cityLoading || !cityQuery}}" bind:tap="onSearchCities">搜索</t-button></view>
+  </view>
+  <view wx:if="{{!cityLoading && !cityError && !citySearched}}" class="state">输入城市、区县或拼音</view>
+  <view class="city-results">
+    <button wx:for="{{cities}}" wx:key="id" class="city-result {{selectedCityId === item.id ? 'city-result--selected' : ''}}" data-index="{{index}}" bindtap="onCity" hover-class="control--pressed" aria-pressed="{{selectedCityId === item.id}}">
+      <view class="city-result__content"><view class="city-result__name">{{item.name}}</view><view class="city-result__path">{{item.path}}</view></view><image wx:if="{{selectedCityId === item.id}}" class="icon icon--small" src="/assets/icons/check.svg" mode="aspectFit" />
+    </button>
+  </view>
+  <view wx:if="{{cityLoading}}" class="state">正在搜索…</view>
+  <view wx:if="{{cityError}}" class="error" bindtap="onMoreCities">{{cityError}} · 点击重试</view>
+  <view wx:if="{{citySearched && !cities.length && !cityLoading && !cityError}}" class="state">没有找到相关地点</view>
+  <t-button wx:if="{{cities.length < cityTotal && !cityError}}" t-class="ui-button" class="button-block" block loading="{{cityLoading}}" disabled="{{cityLoading}}" bind:tap="onMoreCities">加载更多</t-button>
+</app-sheet>

@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="850" viewBox="0 0 1200 850" role="img" aria-label="信息架构 · 个人衣橱的四个入口"><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8" fill="none" stroke="#8a9c87"/></marker></defs><rect width="1200" height="850" fill="#f5f4ef"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#293c31"><text x="48" y="44" font-size="12" letter-spacing="3">搭搭不搭搭 · DESIGN SYSTEM</text><text x="48" y="91" font-size="30" font-weight="600">信息架构 · 个人衣橱的四个入口</text><text x="48" y="124" font-size="14" fill="#6c796e">18 个页面 · 各自管理 · 衣物录入、搭配、穿着记录形成完整闭环</text></g>
+<rect x="350" y="165" width="500" height="90" rx="16" fill="#456653" stroke="#456653"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#fffefb"><text x="370" y="198" font-size="18" font-weight="600">登录与准入</text>
+<text x="370" y="228" font-size="14">P18 微信身份 + 一次性邀请码</text>
+</g>
+<polyline points="600,255 600,292" fill="none" stroke="#8a9c87" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M180 292 H1020" stroke="#8a9c87" fill="none" stroke-width="2"/>
+<polyline points="177,292 177,320" fill="none" stroke="#8a9c87" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="48" y="320" width="258" height="76" rx="16" fill="#456653" stroke="#456653"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#fffefb"><text x="68" y="353" font-size="18" font-weight="600">衣橱</text>
+</g>
+<rect x="48" y="410" width="258" height="255" rx="16" fill="#fffefb" stroke="#d9dfd4"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#293c31"><text x="68" y="443" font-size="18" font-weight="600">页面</text>
+<text x="68" y="473" font-size="14">P01 我的衣橱</text>
+<text x="68" y="500" font-size="14">P02 衣物录入 / 编辑</text>
+<text x="68" y="527" font-size="14">P03 衣物详情</text>
+<text x="68" y="554" font-size="14">P04 图片任务</text>
+</g>
+<rect x="48" y="682" width="258" height="98" rx="16" fill="#fffefb" stroke="#d9dfd4"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#293c31"><text x="68" y="715" font-size="18" font-weight="600">主要操作</text>
+<text x="68" y="745" font-size="14">搜索 · 多条件筛选 · 批量整理</text>
+<text x="68" y="772" font-size="14">归档 / 恢复 · 图片候选确认</text>
+</g>
+<polyline points="459,292 459,320" fill="none" stroke="#8a9c87" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="330" y="320" width="258" height="76" rx="16" fill="#456653" stroke="#456653"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#fffefb"><text x="350" y="353" font-size="18" font-weight="600">搭配</text>
+</g>
+<rect x="330" y="410" width="258" height="255" rx="16" fill="#fffefb" stroke="#d9dfd4"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#293c31"><text x="350" y="443" font-size="18" font-weight="600">页面</text>
+<text x="350" y="473" font-size="14">P05 我的搭配</text>
+<text x="350" y="500" font-size="14">P06 搭配编辑</text>
+<text x="350" y="527" font-size="14">P07 搭配详情</text>
+</g>
+<rect x="330" y="682" width="258" height="98" rx="16" fill="#fffefb" stroke="#d9dfd4"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#293c31"><text x="350" y="715" font-size="18" font-weight="600">主要操作</text>
+<text x="350" y="745" font-size="14">拖动 / 缩放 / 旋转 / 层级</text>
+<text x="350" y="772" font-size="14">收藏 · 导出 · 记录今天穿过</text>
+</g>
+<polyline points="741,292 741,320" fill="none" stroke="#8a9c87" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="612" y="320" width="258" height="76" rx="16" fill="#456653" stroke="#456653"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#fffefb"><text x="632" y="353" font-size="18" font-weight="600">日历</text>
+</g>
+<rect x="612" y="410" width="258" height="255" rx="16" fill="#fffefb" stroke="#d9dfd4"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#293c31"><text x="632" y="443" font-size="18" font-weight="600">页面</text>
+<text x="632" y="473" font-size="14">P08 穿搭日历</text>
+<text x="632" y="500" font-size="14">P09 穿搭记录</text>
+</g>
+<rect x="612" y="682" width="258" height="98" rx="16" fill="#fffefb" stroke="#d9dfd4"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#293c31"><text x="632" y="715" font-size="18" font-weight="600">主要操作</text>
+<text x="632" y="745" font-size="14">补记 · 修改 · 删除</text>
+<text x="632" y="772" font-size="14">按衣物 + 自然日去重计数</text>
+</g>
+<polyline points="1023,292 1023,320" fill="none" stroke="#8a9c87" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="894" y="320" width="258" height="76" rx="16" fill="#456653" stroke="#456653"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#fffefb"><text x="914" y="353" font-size="18" font-weight="600">我的</text>
+</g>
+<rect x="894" y="410" width="258" height="255" rx="16" fill="#fffefb" stroke="#d9dfd4"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#293c31"><text x="914" y="443" font-size="18" font-weight="600">页面</text>
+<text x="914" y="473" font-size="14">P13 我的</text>
+<text x="914" y="500" font-size="14">P10 衣橱统计</text>
+<text x="914" y="527" font-size="14">P11 / P12 出行清单</text>
+<text x="914" y="554" font-size="14">P14 分类与标签</text>
+<text x="914" y="581" font-size="14">P15 设置与数据</text>
+<text x="914" y="608" font-size="14">P16 智能搭配</text>
+<text x="914" y="635" font-size="14">P17 虚拟试穿</text>
+</g>
+<rect x="894" y="682" width="258" height="98" rx="16" fill="#fffefb" stroke="#d9dfd4"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#293c31"><text x="914" y="715" font-size="18" font-weight="600">主要操作</text>
+<text x="914" y="745" font-size="14">数据导出 · 账号注销</text>
+<text x="914" y="772" font-size="14">服务可用性与费用提示</text>
+</g>
+<text x="48" y="821" font-size="13" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#6c796e">完整范围一次交付；天气 / AI / 试穿需落实服务商与预算，图像处理效果需实测。</text>
+</svg>

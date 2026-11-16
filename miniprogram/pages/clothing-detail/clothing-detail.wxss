@@ -1,0 +1,27 @@
+.clothing-detail { padding-top: 20rpx; padding-bottom: calc(152rpx + env(safe-area-inset-bottom)); }
+.clothing-detail .detail-hero { height: 450rpx; max-height: 36vh; border-radius: var(--radius); overflow: hidden; }
+.clothing-detail .detail-hero .garment { width: 90%; height: 90%; }
+.clothing-detail .detail-hero .mini-badge { left: 20rpx; bottom: 20rpx; }
+.clothing-detail .detail-title { margin-top: 26rpx; gap: 12rpx; }
+.clothing-detail .detail-name { font-size: 36rpx; line-height: 1.45; overflow-wrap: anywhere; }
+.clothing-detail .subtitle { margin-top: 10rpx; }
+.clothing-detail .icon-button { background: var(--soft); }
+.clothing-detail .tag-row { margin: 18rpx 0 0; gap: 10rpx; }
+.clothing-detail .soft-tag { padding: 6rpx 16rpx; }
+.clothing-detail .stats-inline { margin: 26rpx 0; padding: 24rpx 12rpx; background: var(--muted-surface); border: 0; border-radius: var(--radius); }
+.stats-inline__item { padding: 0 10rpx; text-align: center; }
+.stats-inline__item + .stats-inline__item { border-left: 1px solid var(--line); }
+.stats-inline__value { font-size: 34rpx; line-height: 1.4; }
+.stats-inline__label { margin-top: 8rpx; font-size: 20rpx; }
+.detail-summary { margin: 0; gap: 20rpx; }
+.info-line { align-items: flex-start; gap: 24rpx; }
+.info-value { min-width: 0; text-align: right; overflow-wrap: anywhere; }
+.info-value--empty { color: var(--muted); }
+.detail-notes .info-value { white-space: pre-wrap; }
+.clothing-detail .entry-row { margin: 26rpx 0 0; padding: 20rpx; font-size: 25rpx; background: var(--bg); border-color: var(--line); }
+.detail-footer { --td-button-medium-padding-horizontal: 12rpx; --td-button-default-bg-color: var(--bg); position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12rpx; padding: 16rpx var(--space) calc(16rpx + env(safe-area-inset-bottom)); background: var(--bg); border-top: 1px solid var(--line); }
+.detail-footer .button-block { min-width: 0; }
+
+.set-siblings { width: 100%; white-space: nowrap; }
+.set-siblings__item { display: inline-block; vertical-align: top; width: 210rpx; margin-right: 20rpx; white-space: normal; font-size: 25rpx; }
+.set-siblings__image { width: 210rpx; height: 240rpx; background: var(--photo); border-radius: var(--radius); }

@@ -1,0 +1,10 @@
+{
+  "navigationBarTitleText": "编辑衣物",
+  "usingComponents": {
+    "recognition-particles": "/components/recognition-particles/recognition-particles",
+    "t-button": "tdesign-miniprogram/button/button",
+    "app-sheet": "/components/app-sheet/app-sheet",
+    "app-select-sheet": "/components/app-select-sheet/app-select-sheet",
+    "app-date-sheet": "/components/app-date-sheet/app-date-sheet"
+  }
+}

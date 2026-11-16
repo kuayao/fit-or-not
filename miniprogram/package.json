@@ -1,0 +1,10 @@
+{
+  "name": "fit-or-not-miniprogram",
+  "version": "0.1.5",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "tdesign-miniprogram": "1.18.0",
+    "zod": "4.6.7"
+  }
+}

@@ -1,0 +1,15 @@
+.sortable-list { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 12rpx; }
+.sortable-list--grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sortable-list__cell { position: relative; min-width: 0; height: 116rpx; padding-bottom: 12rpx; box-sizing: border-box; transition: transform 160ms ease; }
+.sortable-list__cell--dragging { z-index: 2; transition: none; }
+.sortable-list__row { display: flex; align-items: center; height: 100%; border: 1px solid var(--line); border-radius: var(--radius); box-sizing: border-box; background: var(--bg); }
+.sortable-list__row--selected { background: var(--soft); border-color: var(--action-line); color: var(--primary); }
+.sortable-list__cell--dragging .sortable-list__row { border-color: var(--accent); box-shadow: 0 8rpx 24rpx #263D5126; }
+.sortable-list__drop { position: absolute; box-sizing: border-box; border: 1px dashed var(--accent); border-radius: var(--radius); background: var(--soft); }
+.sortable-list__handle { width: 56rpx; height: 100%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.sortable-list__grip { width: 30rpx; height: 30rpx; opacity: .6; }
+.sortable-list__content { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 14rpx; }
+.sortable-list__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 26rpx; }
+.sortable-list__icon { width: 34rpx; height: 34rpx; flex-shrink: 0; }
+.sortable-list__actions { width: 56rpx; min-width: 56rpx; max-width: 56rpx; height: 80rpx; padding: 0; margin: 0; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.sortable-list__actions::after { border: 0; }

@@ -1,0 +1,110 @@
+<view class="page packing-detail">
+  <view wx:if="{{name}}" class="trip-header">
+    <view class="trip-header__top"><image class="trip-header__icon" src="/assets/icons/suitcase.svg" mode="aspectFit" /><view class="trip-header__name">{{name}}</view><button class="icon-button" disabled="{{busy || loading}}" bindtap="onMore" aria-label="管理清单"><image class="icon" src="/assets/icons/more.svg" mode="aspectFit" /></button></view>
+    <view wx:if="{{endedAt || overdue}}" class="trip-header__status">{{endedAt ? '已结束的旅程' : '待结束行程'}}</view>
+    <view class="trip-header__date"><image src="/assets/icons/calendar.svg" mode="aspectFit" /><text>{{dateLabel}}</text></view>
+    <view wx:if="{{total}}" class="trip-progress"><view class="trip-progress__track"><view class="trip-progress__fill" style="width:{{progress}}" /></view><text class="trip-progress__summary">{{packedCount === total ? '已全部收好' : '已收好 ' + packedCount + '/' + total + ' 件'}}</text></view>
+  </view>
+  <view wx:if="{{overdue}}" class="trip-end-prompt"><text>行程结束了吗？</text><button disabled="{{busy}}" bindtap="onChangeStatus">结束行程</button></view>
+  <view wx:if="{{error && !sheet}}" class="error" bindtap="onRetry">{{error}} · 点击重试</view>
+  <view wx:if="{{loading}}" class="state">正在加载清单…</view>
+  <view wx:if="{{name}}" class="packing-items__heading">
+    <view class="packing-items__title"><text>清单衣物</text><text class="packing-items__count">{{total}} 件</text></view>
+    <button wx:if="{{!endedAt}}" class="packing-items__add" hover-class="packing-items__add--pressed" disabled="{{busy || loading}}" bindtap="onChoose" aria-label="添加单品、搭配或套装"><image src="/assets/icons/plus.svg" mode="aspectFit" /><text>添加衣物</text></button>
+    <button wx:else class="packing-items__add" hover-class="packing-items__add--pressed" disabled="{{busy || loading}}" bindtap="onCopy" aria-label="复制为新行程"><image src="/assets/icons/copy.svg" mode="aspectFit" /><text>复制行程</text></button>
+  </view>
+  <view wx:if="{{total}}" class="segmented packing-filters">
+    <view class="segmented__option {{packingFilter === 'all' ? 'segmented__option--selected' : ''}}" data-filter="all" bindtap="onPackingFilter" aria-role="button" aria-pressed="{{packingFilter === 'all'}}">全部 {{total}}</view>
+    <view class="segmented__option {{packingFilter === 'unpacked' ? 'segmented__option--selected' : ''}}" data-filter="unpacked" bindtap="onPackingFilter" aria-role="button" aria-pressed="{{packingFilter === 'unpacked'}}">待收拾 {{total - packedCount}}</view>
+    <view class="segmented__option {{packingFilter === 'packed' ? 'segmented__option--selected' : ''}}" data-filter="packed" bindtap="onPackingFilter" aria-role="button" aria-pressed="{{packingFilter === 'packed'}}">已收好 {{packedCount}}</view>
+  </view>
+  <view wx:for="{{groups}}" wx:for-item="group" wx:key="id" class="packing-group">
+    <view class="packing-group__header" data-id="{{group.id}}" bindtap="onToggleGroup" aria-role="button" aria-expanded="{{!group.collapsed}}" aria-label="{{group.name}}，已收好{{group.packedCount}}/{{group.total}}件">
+      <view class="packing-group__name">{{group.name}}</view><text class="packing-group__count {{group.packedCount === group.total ? 'packing-group__count--ready' : ''}}">已收好 {{group.packedCount}}/{{group.total}} 件</text><image class="packing-group__chevron {{!group.collapsed ? 'packing-group__chevron--expanded' : ''}}" src="/assets/icons/chevron.svg" mode="aspectFit" />
+    </view>
+    <view wx:if="{{!group.collapsed}}" class="packing-group__items">
+      <t-swipe-cell wx:for="{{group.items}}" wx:key="clothingId" disabled="{{busy || loading || !!endedAt}}">
+        <view class="packing-item {{item.packed ? 'packing-item--packed' : ''}}" hover-class="{{endedAt ? 'none' : 'control--pressed'}}" data-id="{{item.clothingId}}" bindtap="onToggle" aria-role="checkbox" aria-checked="{{item.packed}}" aria-disabled="{{busy || loading || !!endedAt}}">
+        <image class="packing-item__photo" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" />
+        <view class="grow"><view class="packing-item__name">{{item.name}}</view><view class="packing-item__status">{{removingId === item.clothingId ? '正在移除…' : (item.status === 'archived' ? '已归档 · ' : '') + (item.packed ? '已收好' : '待收拾')}}</view></view>
+        <view class="check-control {{item.packed ? 'check-control--checked' : ''}}"><image wx:if="{{item.packed}}" class="check-icon" src="/assets/icons/check.svg" mode="aspectFit" /></view>
+        </view>
+        <button wx:if="{{!endedAt}}" slot="right" class="packing-item__remove" disabled="{{busy || loading}}" data-id="{{item.clothingId}}" catchtap="onRemoveItem" aria-label="从清单移除{{item.name}}"><image src="/assets/icons/trash-danger.svg" mode="aspectFit" /><text>{{removingId === item.clothingId ? '移除中' : '移除'}}</text></button>
+      </t-swipe-cell>
+    </view>
+  </view>
+  <view wx:if="{{total && !groups.length && !loading && !error}}" class="state">{{packingFilter === 'unpacked' ? '衣物已全部收好' : '还没有收好的衣物'}}</view>
+  <view wx:if="{{!items.length && !loading && !error}}" class="trip-empty"><view class="trip-empty__icon"><image src="/assets/icons/hanger.svg" mode="aspectFit" /></view><view class="trip-empty__title">还没放入衣物</view><view class="trip-empty__copy">从单品、搭配或套装中挑选</view></view>
+</view>
+<app-sheet visible="{{!!sheet && !dateOpen}}" title="{{sheetTitle}}" scrollable="{{sheet === 'edit'}}" size="{{sheet === 'manage' ? 'small' : sheet === 'add' ? 'large-fixed' : 'large'}}" busy="{{busy || !!addingGroup}}" bind:close="onCloseSheet">
+  <view wx:if="{{error && sheet !== 'add'}}" class="error">{{error}}</view>
+  <view wx:if="{{sheet === 'manage'}}" class="trip-menu">
+    <button wx:if="{{!endedAt}}" class="trip-menu__action trip-menu__action--edit" hover-class="trip-menu__action--pressed" disabled="{{busy}}" bindtap="onEditList">
+      <view class="trip-menu__icon"><image src="/assets/icons/edit.svg" mode="aspectFit" /></view><text class="trip-menu__label">编辑清单</text><image class="trip-menu__arrow" src="/assets/icons/chevron.svg" mode="aspectFit" />
+    </button>
+    <view class="trip-menu__group">
+      <button class="trip-menu__action" hover-class="trip-menu__action--pressed" disabled="{{busy}}" bindtap="onChangeStatus">
+        <view class="trip-menu__icon"><image src="/assets/icons/archive.svg" mode="aspectFit" /></view><text class="trip-menu__label">{{endedAt ? '重新开启行程' : '结束行程'}}</text><image class="trip-menu__arrow" src="/assets/icons/chevron.svg" mode="aspectFit" />
+      </button>
+      <button class="trip-menu__action" hover-class="trip-menu__action--pressed" disabled="{{busy}}" bindtap="onCopy">
+        <view class="trip-menu__icon"><image src="/assets/icons/copy.svg" mode="aspectFit" /></view><text class="trip-menu__label">复制为新行程</text><image class="trip-menu__arrow" src="/assets/icons/chevron.svg" mode="aspectFit" />
+      </button>
+    </view>
+    <button class="trip-menu__action trip-menu__action--delete" hover-class="trip-menu__action--pressed" disabled="{{busy}}" bindtap="onDelete">
+      <view class="trip-menu__icon"><image src="/assets/icons/trash-danger.svg" mode="aspectFit" /></view><text class="trip-menu__label">删除清单</text>
+    </button>
+  </view>
+  <block wx:if="{{sheet === 'edit'}}"><view class="field"><view class="field-label">清单名称</view><input class="input" maxlength="60" value="{{draft.name}}" bindinput="onInput" /></view><view class="field"><view class="field-label">出行日期</view><view class="packing-date-range" bindtap="onOpenDate" aria-role="button" aria-label="选择出行日期范围" aria-disabled="{{busy}}"><view class="packing-date-range__endpoint"><text class="packing-date-range__label">出发</text><text class="packing-date-range__value">{{draft.startOn || '请选择'}}</text></view><image class="packing-date-range__arrow" src="/assets/icons/arrow.svg" mode="aspectFit" /><view class="packing-date-range__endpoint"><text class="packing-date-range__label">结束</text><text class="packing-date-range__value">{{draft.endOn || '请选择'}}</text></view><image class="packing-date-range__icon" src="/assets/icons/calendar.svg" mode="aspectFit" /></view></view><view class="field"><view class="field-label">出发时刻（选填）</view><input class="input" maxlength="5" value="{{draft.departureTime}}" bindinput="onDepartureTimeInput" disabled="{{busy}}" placeholder="默认 07:00" /></view><t-button t-class="ui-button" size="small" disabled="{{!draft.startOn && !draft.endOn}}" bind:tap="onClearDates">清空日期</t-button><view class="section-title section">清单衣物 · {{editItems.length}} 件</view><view wx:for="{{editItems}}" wx:key="clothingId" class="list-item row"><image class="thumb" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" /><view class="grow">{{item.name}}</view><button class="icon-button" data-id="{{item.clothingId}}" bindtap="onRemove" aria-label="移除{{item.name}}"><image class="icon" src="/assets/icons/minus.svg" /></button></view><view class="form-hint section">保存后应用修改，关闭则放弃本次编辑。</view></block>
+  <view wx:if="{{sheet === 'add'}}" class="packing-picker">
+    <view class="segmented picker-tabs"><view class="segmented__option {{addTab === 'clothes' ? 'segmented__option--selected' : ''}}" data-tab="clothes" bindtap="onAddTab">单品</view><view class="segmented__option {{addTab === 'outfits' ? 'segmented__option--selected' : ''}}" data-tab="outfits" bindtap="onAddTab">搭配</view><view class="segmented__option {{addTab === 'sets' ? 'segmented__option--selected' : ''}}" data-tab="sets" bindtap="onAddTab">套装</view></view>
+    <block wx:if="{{addTab === 'clothes'}}">
+      <view class="picker-search"><image class="picker-icon" src="/assets/icons/search.svg" mode="aspectFit" /><input class="picker-search__input" value="{{query}}" maxlength="100" bindinput="onSearchInput" bindconfirm="onSearch" confirm-type="search" placeholder="搜索衣物名称、品牌" disabled="{{busy || !!addingGroup}}" /><button wx:if="{{query}}" class="picker-search__clear" bindtap="onClearSearch" aria-label="清空搜索"><image src="/assets/icons/close.svg" mode="aspectFit" /></button><button class="picker-search__submit" bindtap="onSearch">搜索</button></view>
+      <view class="picker-tools"><button class="picker-filter {{favoriteOnly ? 'picker-filter--active' : ''}}" bindtap="onFavorite" aria-pressed="{{favoriteOnly}}"><image class="picker-icon" src="/assets/icons/{{favoriteOnly ? 'heart-filled' : 'heart'}}.svg" mode="aspectFit" />只看收藏</button><button class="picker-filter {{selectedOnly ? 'picker-filter--active' : ''}}" bindtap="onSelectedOnly" aria-pressed="{{selectedOnly}}">已选<text class="picker-filter__count">{{selectedChoices.length}}</text><image class="picker-icon" src="/assets/icons/{{selectedOnly ? 'close' : 'arrow'}}.svg" mode="aspectFit" /></button></view>
+      <view wx:if="{{taxonomyError}}" class="picker-feedback picker-feedback--error" bindtap="onRetryCategories">分类加载失败 · 点击重试</view>
+      <view class="picker-body">
+        <scroll-view wx:if="{{!selectedOnly}}" class="picker-categories" scroll-y enhanced show-scrollbar="{{false}}">
+          <view class="picker-category {{!rootCategoryId ? 'picker-category--active' : ''}}" data-id="" bindtap="onRootCategory" aria-role="button" aria-pressed="{{!rootCategoryId}}">全部</view>
+          <view wx:for="{{rootCategories}}" wx:key="id" class="picker-category {{rootCategoryId === item.id ? 'picker-category--active' : ''}}" data-id="{{item.id}}" bindtap="onRootCategory" aria-role="button" aria-pressed="{{rootCategoryId === item.id}}">{{item.name}}</view>
+          <view wx:if="{{taxonomyLoading}}" class="picker-feedback">加载中…</view>
+        </scroll-view>
+        <view class="picker-results">
+          <scroll-view wx:if="{{!selectedOnly && rootCategoryId && subCategories.length}}" class="picker-subcategories" scroll-x show-scrollbar="{{false}}" scroll-into-view="picker-sub-{{categoryId}}">
+            <view id="picker-sub-{{rootCategoryId}}" class="picker-subcategory {{categoryId === rootCategoryId ? 'picker-subcategory--active' : ''}}" data-id="{{rootCategoryId}}" bindtap="onSubCategory">全部</view><view wx:for="{{subCategories}}" wx:key="id" id="picker-sub-{{item.id}}" class="picker-subcategory {{categoryId === item.id ? 'picker-subcategory--active' : ''}}" data-id="{{item.id}}" bindtap="onSubCategory">{{item.name}}</view>
+          </scroll-view>
+          <view class="picker-results__count">{{selectedOnly ? '已选 ' + selectedChoices.length + ' 件' : loadingChoices && !choices.length ? '正在查找…' : '共 ' + choicesTotal + ' 件'}}</view>
+          <scroll-view class="picker-clothes" scroll-y enhanced show-scrollbar="{{false}}" lower-threshold="120" bindscrolltolower="onMoreChoices">
+            <view class="picker-grid">
+              <view wx:for="{{selectedOnly ? selectedChoices : choices}}" wx:key="id" class="picker-clothing {{item.selected || item.included ? 'picker-clothing--selected' : ''}} {{item.included ? 'picker-clothing--included' : ''}}" data-id="{{item.id}}" bindtap="onSelect" aria-role="checkbox" aria-checked="{{item.selected || item.included}}" aria-disabled="{{item.included || busy || !!addingGroup}}">
+                <view class="picker-clothing__photo"><image src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" /><view class="picker-clothing__check"><image wx:if="{{item.selected || item.included}}" src="/assets/icons/check.svg" mode="aspectFit" /></view><view wx:if="{{item.included}}" class="picker-clothing__included">已在清单</view></view><view class="picker-clothing__name">{{item.name}}</view>
+              </view>
+            </view>
+            <block wx:if="{{!selectedOnly}}"><view wx:if="{{loadingChoices}}" class="picker-feedback">正在加载衣物…</view><view wx:elif="{{choiceError}}" class="picker-feedback picker-feedback--error" bindtap="onRetryChoices">{{choiceError}} · 点击重试</view><view wx:elif="{{!choices.length}}" class="picker-feedback">{{query || categoryId || favoriteOnly ? '没有符合条件的衣物' : '衣橱中还没有可选衣物'}}</view></block>
+            <view wx:if="{{selectedOnly && !selectedChoices.length}}" class="picker-feedback">还没有选中衣物</view>
+          </scroll-view>
+        </view>
+      </view>
+    </block>
+    <view wx:if="{{addTab === 'sets'}}" class="picker-sets">
+      <view class="picker-search picker-set-search"><image class="picker-icon" src="/assets/icons/search.svg" mode="aspectFit" /><input class="picker-search__input" value="{{setQuery}}" maxlength="100" bindinput="onSetSearchInput" bindconfirm="onSetSearch" confirm-type="search" placeholder="搜索套装名称" disabled="{{busy || !!addingGroup}}" /><button wx:if="{{setQuery}}" class="picker-search__clear" disabled="{{busy || !!addingGroup}}" bindtap="onClearSetSearch" aria-label="清空套装搜索"><image src="/assets/icons/close.svg" mode="aspectFit" /></button><button class="picker-search__submit" disabled="{{busy || !!addingGroup}}" bindtap="onSetSearch">搜索</button></view>
+      <view class="picker-results__count">{{loadingSets && !sets.length ? '正在查找…' : '共 ' + setsTotal + ' 套'}}</view>
+      <scroll-view class="picker-outfits" scroll-y enhanced show-scrollbar="{{false}}" lower-threshold="120" bindscrolltolower="onMoreSets">
+        <view wx:for="{{sets}}" wx:key="id" class="picker-set">
+          <view class="picker-set__preview {{item.previews.length > 1 ? 'picker-set__preview--grid' : ''}}"><image wx:for="{{item.previews}}" wx:for-item="preview" wx:key="id" src="{{preview.url}}" data-url="{{preview.url}}" binderror="onImageError" mode="aspectFit" /></view>
+          <view class="picker-set__info">
+            <view class="picker-set__heading"><view class="picker-set__name">{{item.name}}</view><text class="card-meta">{{item.clothingIds.length}} 件</text></view>
+            <view wx:for="{{item.members}}" wx:for-item="member" wx:key="id" class="picker-set__member"><text class="picker-set__member-name">{{member.name}}</text><text class="picker-set__member-status {{member.included || member.selected ? 'picker-set__member-status--selected' : ''}}">{{member.included ? '已在清单' : member.selected ? '本次选入' : '未选入'}}</text></view>
+            <button class="picker-set__add" data-id="{{item.id}}" data-source="sets" disabled="{{busy || !!addingGroup || loadingSets || !item.remainingCount}}" bindtap="onAddGroup">{{addingGroup === item.id ? '正在选入…' : !item.remainingCount ? '已选齐' : item.remainingCount < item.clothingIds.length ? '补齐 ' + item.remainingCount + ' 件' : '选入整套'}}</button>
+          </view>
+        </view>
+        <view wx:if="{{loadingSets}}" class="picker-feedback">正在加载套装…</view><view wx:elif="{{setError}}" class="picker-feedback picker-feedback--error" bindtap="onRetrySets">{{setError}} · 点击重试</view><view wx:elif="{{!sets.length}}" class="picker-feedback">{{setQuery ? '没有符合条件的套装' : '还没有保存的套装'}}</view>
+      </scroll-view>
+    </view>
+    <scroll-view wx:if="{{addTab === 'outfits'}}" class="picker-outfits" scroll-y enhanced show-scrollbar="{{false}}">
+      <view wx:for="{{outfits}}" wx:key="id" class="picker-outfit"><view class="grow"><view class="picker-outfit__name">{{item.name}}</view><view class="card-meta">{{item.clothingIds.length}} 件衣物</view></view><t-button t-class="ui-button" size="small" data-id="{{item.id}}" loading="{{addingGroup === item.id}}" disabled="{{busy || !!addingGroup}}" data-source="outfits" bind:tap="onAddGroup">选入</t-button></view>
+      <view wx:if="{{loadingOutfits}}" class="picker-feedback">正在加载搭配…</view><view wx:elif="{{!outfits.length && !outfitError}}" class="picker-feedback">还没有保存的搭配</view><t-button wx:if="{{outfits.length < outfitsTotal || outfitError}}" t-class="ui-button" block loading="{{loadingOutfits}}" disabled="{{loadingOutfits || busy || !!addingGroup}}" bind:tap="onMoreOutfits">{{outfitError ? '重试加载搭配' : '加载更多搭配'}}</t-button>
+    </scroll-view>
+  </view>
+  <view slot="footer"><block wx:if="{{sheet === 'add'}}"><view wx:if="{{error}}" class="picker-footer-error">{{error}}</view><t-button t-class="ui-button" block theme="primary" loading="{{busy}}" disabled="{{busy || !!addingGroup || !selectedChoices.length}}" bind:tap="onSave">确认添加 · {{selectedChoices.length}} 件</t-button></block><t-button wx:if="{{sheet === 'edit'}}" t-class="ui-button" block theme="primary" loading="{{busy}}" disabled="{{busy}}" bind:tap="onSave">保存清单</t-button></view>
+</app-sheet>
+
+<app-date-sheet visible="{{dateOpen}}" title="出行日期" range="{{true}}" start-on="{{draft.startOn}}" end-on="{{draft.endOn}}" bind:confirm="onDate" bind:close="onCloseDate" />

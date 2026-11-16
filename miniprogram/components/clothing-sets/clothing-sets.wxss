@@ -1,0 +1,26 @@
+:host { display: block; height: 100%; }
+.sets-scroll { height: 100%; }
+.sets-content { padding: 8rpx 24rpx 40rpx; }
+.sets-toolbar { display: flex; align-items: center; gap: 16rpx; }
+.sets-search { height: 76rpx; padding: 0 20rpx; }
+.sets-search__icon { width: 30rpx; height: 30rpx; flex-shrink: 0; }
+.sets-create { width: 148rpx; flex-shrink: 0; }
+.sets-create__button { width: 100% !important; min-width: 0; max-width: 100%; margin: 0 !important; padding: 0 !important; border-radius: var(--sheet-option-radius); }
+.sets-create__content { display: flex; align-items: center; gap: 8rpx; }
+.sets-create__icon { width: 28rpx; height: 28rpx; }
+.sets-count { padding: 24rpx 2rpx 16rpx; color: var(--muted); font-size: 22rpx; }
+.sets-list { display: flex; flex-direction: column; gap: 24rpx; }
+.sets-card { display: flex; gap: 24rpx; padding: 16rpx; border: 1px solid var(--line); border-radius: var(--panel-radius); background: var(--bg); }
+.sets-card--pressed { background: var(--soft); }
+.sets-cover { display: block; width: 224rpx; height: 304rpx; flex-shrink: 0; border-radius: var(--radius); background: var(--photo); }
+.sets-card__body { display: flex; flex-direction: column; flex: 1; min-width: 0; padding: 8rpx 0; }
+.sets-card__heading { display: flex; align-items: flex-start; gap: 12rpx; }
+.sets-card__name { flex: 1; min-width: 0; font-size: 30rpx; font-weight: 500; line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.sets-card__arrow { flex-shrink: 0; width: 28rpx; height: 38rpx; opacity: .6; }
+.sets-card__count { margin-top: 8rpx; color: var(--muted); font-size: 22rpx; }
+.sets-previews { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12rpx; margin-top: auto; padding-top: 20rpx; }
+.sets-previews__item { height: 144rpx; background: var(--photo); border-radius: var(--sheet-option-radius); overflow: hidden; }
+.sets-previews__image { display: block; box-sizing: border-box; width: 100%; height: 100%; padding: 10rpx; }
+.sets-skeleton { height: 336rpx; border-radius: var(--panel-radius); }
+.sets-empty { padding: 100rpx 24rpx; }
+.sets-empty__title { font-size: 28rpx; color: var(--muted); }

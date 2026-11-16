@@ -1,0 +1,10 @@
+{
+  "navigationBarTitleText": "搭搭不搭搭",
+  "onReachBottomDistance": 200,
+  "usingComponents": {
+    "app-sheet": "/components/app-sheet/app-sheet",
+    "t-button": "tdesign-miniprogram/button/button",
+    "app-select-sheet": "/components/app-select-sheet/app-select-sheet",
+    "clothing-sets": "/components/clothing-sets/clothing-sets"
+  }
+}

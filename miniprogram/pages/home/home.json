@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "搭搭不搭搭",
+  "usingComponents": {
+    "app-weather": "/components/app-weather/app-weather",
+    "t-button": "tdesign-miniprogram/button/button"
+  }
+}

@@ -1,0 +1,60 @@
+<view class="page packing-page">
+  <view class="packing-overview">
+    <view class="packing-overview__info">
+      <view class="packing-overview__title">{{tab === 'ended' ? '旅途留存' : '出行准备'}}</view>
+      <view class="packing-overview__count">{{loading && !lists.length ? '正在加载…' : error && !lists.length ? '暂未加载清单' : total + ' 份出行清单'}}</view>
+    </view>
+    <button class="packing-overview__create" hover-class="packing-overview__create--pressed" disabled="{{busy}}" bindtap="onAdd"><image src="/assets/icons/plus.svg" mode="aspectFit" /><text>新建清单</text></button>
+  </view>
+
+  <view class="segmented packing-tabs"><view class="segmented__option {{tab === 'active' ? 'segmented__option--selected' : ''}}" data-tab="active" bindtap="onTab">进行中</view><view class="segmented__option {{tab === 'ended' ? 'segmented__option--selected' : ''}}" data-tab="ended" bindtap="onTab">历史清单</view></view>
+
+  <view wx:for="{{lists}}" wx:key="id" class="packing-card" hover-class="packing-card--pressed" data-id="{{item.id}}" bindtap="onOpen" aria-role="button" aria-label="打开{{item.name}}">
+    <view class="packing-card__top">
+      <view class="packing-card__date"><image src="/assets/icons/calendar.svg" mode="aspectFit" /><text>{{item.dateLabel}}</text></view>
+      <image class="packing-card__arrow" src="/assets/icons/arrow.svg" mode="aspectFit" />
+    </view>
+    <view class="packing-card__name">{{item.name}}</view>
+    <view class="packing-card__bottom">
+      <view class="packing-card__summary">
+        <text class="packing-card__status {{item.count && item.packed === item.count && !item.ended && !item.overdue ? 'packing-card__status--ready' : ''}}">{{item.ended ? '已结束' : item.overdue ? '待结束' : !item.count ? '待添加衣物' : item.packed === item.count ? '已收拾好' : '收拾中'}}</text>
+        <text class="packing-card__count">{{item.count ? '已收好 ' + item.packed + ' / ' + item.count + ' 件' : '0 件衣物'}}</text>
+      </view>
+      <view wx:if="{{item.count}}" class="packing-card__progress"><view class="packing-card__fill" style="width:{{item.progress}}" /></view>
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="state">正在加载清单…</view>
+  <view wx:if="{{error}}" class="packing-error">
+    <view class="packing-error__message">{{error}}</view>
+    <t-button t-class="ui-button" size="small" disabled="{{loading}}" bind:tap="onRetry">重新加载</t-button>
+  </view>
+  <view wx:if="{{!loading && !error && !lists.length}}" class="packing-empty">
+    <view class="packing-empty__icon"><image src="/assets/icons/suitcase.svg" mode="aspectFit" /></view>
+    <view class="packing-empty__title">{{tab === 'ended' ? '还没有历史清单' : '还没有进行中的行程'}}</view>
+    <view class="packing-empty__copy">{{tab === 'ended' ? '结束后的行程会留在这里' : '建一份清单，把要带的衣物放进来'}}</view>
+  </view>
+</view>
+
+<app-sheet visible="{{creating && !dateOpen}}" title="新建出行清单" scrollable busy="{{busy}}" bind:close="onCloseCreate">
+  <view class="packing-form">
+    <view class="field packing-form__name">
+      <view class="field-label">清单名称</view>
+      <input class="input" maxlength="60" placeholder="例如：潮汕三日游" value="{{draft.name}}" disabled="{{busy}}" bindinput="onInput" confirm-type="done" />
+    </view>
+    <view class="packing-form__heading"><text>出行日期</text><text class="packing-form__optional">选填</text></view>
+    <view class="packing-date-range" bindtap="onOpenDate" aria-role="button" aria-label="选择出行日期范围" aria-disabled="{{busy}}">
+      <view class="packing-date-range__endpoint"><text class="packing-date-range__label">出发</text><text class="packing-date-range__value">{{draft.startOn || '请选择'}}</text></view>
+      <image class="packing-date-range__arrow" src="/assets/icons/arrow.svg" mode="aspectFit" />
+      <view class="packing-date-range__endpoint"><text class="packing-date-range__label">结束</text><text class="packing-date-range__value">{{draft.endOn || '请选择'}}</text></view>
+      <image class="packing-date-range__icon" src="/assets/icons/calendar.svg" mode="aspectFit" />
+    </view>
+    <view class="field"><view class="field-label">出发时刻（选填）</view><input class="input" maxlength="5" value="{{draft.departureTime}}" bindinput="onDepartureTimeInput" disabled="{{busy}}" placeholder="默认 07:00" /></view>
+    <view class="packing-form__clear"><t-button wx:if="{{draft.startOn || draft.endOn}}" variant="text" size="small" disabled="{{busy}}" bind:tap="onClearDates">清空日期</t-button></view>
+    <view class="form-hint">未收齐行李时，出发前 19:00 微信提醒</view>
+    <view wx:if="{{formError}}" class="error packing-form__error">{{formError}}</view>
+  </view>
+  <view slot="footer"><t-button t-class="ui-button" class="button-block" block theme="primary" loading="{{busy}}" disabled="{{busy}}" bind:tap="onCreate">创建清单</t-button></view>
+</app-sheet>
+
+<app-date-sheet visible="{{dateOpen}}" title="出行日期" range="{{true}}" start-on="{{draft.startOn}}" end-on="{{draft.endOn}}" bind:confirm="onDate" bind:close="onCloseDate" />

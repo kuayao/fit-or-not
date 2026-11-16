@@ -1,0 +1,21 @@
+<app-sheet visible="{{visible}}" title="{{title}}" scrollable bind:close="onClose">
+  <view wx:if="{{range}}" class="date-range">
+    <view class="date-range__endpoint {{!draftStart || draftEnd ? 'date-range__endpoint--active' : ''}}"><text class="date-range__label">出发日期</text><text class="date-range__value">{{draftStart || '请选择'}}</text></view>
+    <view class="date-range__divider">—</view>
+    <view class="date-range__endpoint {{draftStart && !draftEnd ? 'date-range__endpoint--active' : ''}}"><text class="date-range__label">结束日期</text><text class="date-range__value">{{draftEnd || '请选择'}}</text></view>
+  </view>
+  <view class="date-navigation">
+    <button class="icon-button {{!canPrevious ? 'date-arrow--disabled' : ''}}" disabled="{{!canPrevious}}" data-offset="-1" bindtap="onNavigate" aria-label="{{mode === 'day' ? '上个月' : mode === 'month' ? '上一年' : '更早年份'}}"><image class="icon" src="/assets/icons/back.svg" mode="aspectFit" /></button>
+    <view wx:if="{{mode !== 'year'}}" class="date-navigation__title"><button class="date-navigation__label" bindtap="onShowYears">{{year}} 年</button><button class="date-navigation__label {{mode === 'month' ? 'date-navigation__label--active' : ''}}" bindtap="onShowMonths">{{monthNumber}} 月</button></view>
+    <view wx:else class="date-navigation__range">{{yearStart}} — {{yearEnd}}</view>
+    <button class="icon-button {{!canNext ? 'date-arrow--disabled' : ''}}" disabled="{{!canNext}}" data-offset="1" bindtap="onNavigate" aria-label="{{mode === 'day' ? '下个月' : mode === 'month' ? '下一年' : '更晚年份'}}"><image class="icon" src="/assets/icons/arrow.svg" mode="aspectFit" /></button>
+  </view>
+  <block wx:if="{{mode === 'day'}}">
+    <view class="date-weekdays"><view wx:for="{{weekdays}}" wx:key="*this">{{item}}</view></view>
+    <view class="date-days {{range ? 'date-days--range' : ''}}"><view wx:for="{{days}}" wx:key="date" class="date-days__cell {{range && item.inMonth && draftStart && draftEnd && item.date >= draftStart && item.date <= draftEnd ? 'date-days__cell--range' : ''}} {{range && item.date === draftStart ? 'date-days__cell--start' : ''}} {{range && item.date === draftEnd ? 'date-days__cell--end' : ''}}"><button wx:if="{{item.inMonth}}" class="date-day {{(range ? draftStart === item.date || draftEnd === item.date : draft === item.date) ? 'date-day--selected' : ''}} {{today === item.date ? 'date-day--today' : ''}} {{item.disabled ? 'date-day--disabled' : ''}}" disabled="{{item.disabled}}" data-date="{{item.date}}" bindtap="onDate" aria-label="{{item.date}}" aria-pressed="{{range ? draftStart === item.date || draftEnd === item.date : draft === item.date}}">{{item.number}}</button></view></view>
+    <view class="form-hint date-hint">点击年月可快速切换</view>
+  </block>
+  <view wx:elif="{{mode === 'year'}}" class="date-options"><button wx:for="{{years}}" wx:key="*this" class="date-option {{year === item ? 'date-option--selected' : ''}}" data-year="{{item}}" bindtap="onYear" aria-pressed="{{year === item}}">{{item}} 年</button></view>
+  <view wx:else class="date-options"><button wx:for="{{months}}" wx:key="value" class="date-option {{monthNumber === item.value ? 'date-option--selected' : ''}} {{item.disabled ? 'date-option--disabled' : ''}}" disabled="{{item.disabled}}" data-month="{{item.value}}" bindtap="onMonth" aria-pressed="{{monthNumber === item.value}}">{{item.value}} 月</button></view>
+  <view slot="footer"><view class="date-summary"><text>{{range ? !draftStart ? '请选择出发日期' : !draftEnd ? '请选择结束日期' : '已选好出行日期' : '已选 ' + draft}}</text><button class="date-today {{!canToday ? 'date-today--disabled' : ''}}" disabled="{{!canToday}}" bindtap="onToday">今天</button></view><t-button t-class="ui-button" block theme="primary" disabled="{{range && (!draftStart || !draftEnd)}}" bind:tap="onConfirm">确认日期</t-button></view>
+</app-sheet>

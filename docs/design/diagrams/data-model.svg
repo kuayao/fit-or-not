@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="950" viewBox="0 0 1200 950" role="img" aria-label="核心数据关系 · 所有资源归属当前用户"><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8" fill="none" stroke="#8a9c87"/></marker></defs><rect width="1200" height="950" fill="#f5f4ef"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#293c31"><text x="48" y="44" font-size="12" letter-spacing="3">搭搭不搭搭 · DESIGN SYSTEM</text><text x="48" y="91" font-size="30" font-weight="600">核心数据关系 · 所有资源归属当前用户</text><text x="48" y="124" font-size="14" fill="#6c796e">逻辑关系图 · 完整字段、18 张表与约束见数据设计文档 · 尚未执行数据库迁移</text></g>
+<rect x="460" y="168" width="280" height="100" rx="16" fill="#456653" stroke="#456653"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#fffefb"><text x="480" y="201" font-size="18" font-weight="600">users · 用户</text>
+<text x="480" y="231" font-size="14">微信身份 / 准入 / 状态</text>
+</g>
+<rect x="48" y="168" width="310" height="100" rx="16" fill="#fffefb" stroke="#d9dfd4"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#293c31"><text x="68" y="201" font-size="18" font-weight="600">sessions / invitations</text>
+<text x="68" y="231" font-size="14">会话哈希 / 有效期 / 一次性绑定</text>
+</g>
+<polyline points="358,218 460,218" fill="none" stroke="#8a9c87" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="392" y="205" font-size="12" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#63765e">准入</text>
+<rect x="48" y="345" width="310" height="124" rx="16" fill="#fffefb" stroke="#d9dfd4"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#293c31"><text x="68" y="378" font-size="18" font-weight="600">categories / tags</text>
+<text x="68" y="408" font-size="14">每用户独立分类与标签</text>
+<text x="68" y="435" font-size="14">clothing_tags 维护关联</text>
+</g>
+<rect x="460" y="345" width="280" height="124" rx="16" fill="#456653" stroke="#456653"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#fffefb"><text x="480" y="378" font-size="18" font-weight="600">clothes · 衣物</text>
+<text x="480" y="408" font-size="14">图片 / 分类 / 金额 / 状态</text>
+<text x="480" y="435" font-size="14">version / 归属复合外键</text>
+</g>
+<rect x="842" y="345" width="310" height="124" rx="16" fill="#fffefb" stroke="#d9dfd4"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#293c31"><text x="862" y="378" font-size="18" font-weight="600">media_assets</text>
+<text x="862" y="408" font-size="14">原图 / 派生图 / 私有存储</text>
+<text x="862" y="435" font-size="14">clothing_assets 连接衣物</text>
+</g>
+<polyline points="600,268 600,345" fill="none" stroke="#8a9c87" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="613" y="309" font-size="12" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#63765e">1 : N</text>
+<polyline points="358,405 460,405" fill="none" stroke="#8a9c87" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="376" y="391" font-size="12" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#63765e">分类 / 标签</text>
+<polyline points="740,405 842,405" fill="none" stroke="#8a9c87" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="760" y="391" font-size="12" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#63765e">图片关系</text>
+<rect x="48" y="560" width="310" height="130" rx="16" fill="#fffefb" stroke="#d9dfd4"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#293c31"><text x="68" y="593" font-size="18" font-weight="600">outfits → outfit_items</text>
+<text x="68" y="623" font-size="14">搭配与布局 / 1–12 件</text>
+<text x="68" y="650" font-size="14">同一衣物在同一搭配中唯一</text>
+<text x="68" y="677" font-size="14">修改搭配不改变已记录穿搭</text>
+</g>
+<rect x="445" y="560" width="310" height="130" rx="16" fill="#fffefb" stroke="#d9dfd4"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#293c31"><text x="465" y="593" font-size="18" font-weight="600">wear_records → wear_items</text>
+<text x="465" y="623" font-size="14">实际穿着 / 单品快照</text>
+<text x="465" y="650" font-size="14">同件衣物同日统计一次</text>
+<text x="465" y="677" font-size="14">source_outfit_id 为来源关联</text>
+</g>
+<rect x="842" y="560" width="310" height="130" rx="16" fill="#fffefb" stroke="#d9dfd4"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#293c31"><text x="862" y="593" font-size="18" font-weight="600">packing_lists → packing_items</text>
+<text x="862" y="623" font-size="14">出行清单 / 独立打包状态</text>
+<text x="862" y="650" font-size="14">同件衣物自动去重</text>
+<text x="862" y="677" font-size="14">复制清单重置打包状态</text>
+</g>
+<path d="M600 469 V512 M203 512 H997" stroke="#8a9c87" stroke-width="2" fill="none"/>
+<polyline points="203,512 203,560" fill="none" stroke="#8a9c87" stroke-width="2" marker-end="url(#arrow)"/>
+<polyline points="600,512 600,560" fill="none" stroke="#8a9c87" stroke-width="2" marker-end="url(#arrow)"/>
+<polyline points="997,512 997,560" fill="none" stroke="#8a9c87" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="48" y="762" width="505" height="112" rx="16" fill="#fffefb" stroke="#d9dfd4"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#293c31"><text x="68" y="795" font-size="18" font-weight="600">image_jobs / external_jobs</text>
+<text x="68" y="825" font-size="14">输入资产、状态、结果、费用与模型版本</text>
+<text x="68" y="852" font-size="14">外部请求幂等；本地任务租约与心跳</text>
+</g>
+<rect x="600" y="762" width="552" height="112" rx="16" fill="#fffefb" stroke="#d9dfd4"/>
+<g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#293c31"><text x="620" y="795" font-size="18" font-weight="600">data_exports / 媒体生命周期</text>
+<text x="620" y="825" font-size="14">导出状态、资产、过期时间；用户独占资源清理</text>
+<text x="620" y="852" font-size="14">运行中任务、历史引用与文件删除需协调</text>
+</g>
+<text x="48" y="921" font-size="13" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif" fill="#6c796e">衣物被搭配 / 穿搭 / 清单引用时阻止永久删除；归档保留引用。跨用户关联由查询与复合外键约束。</text>
+</svg>

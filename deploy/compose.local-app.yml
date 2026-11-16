@@ -1,0 +1,41 @@
+name: fit-or-not-local-app
+services:
+  api:
+    image: fit-or-not-backend:local
+    pull_policy: never
+    platform: linux/arm64
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:3006:3006"
+    networks:
+      - local-db
+    volumes:
+      - media:/app/media
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3006/api/health',{signal:AbortSignal.timeout(4000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+  worker:
+    image: fit-or-not-backend:local
+    pull_policy: never
+    platform: linux/arm64
+    command: ["worker"]
+    restart: unless-stopped
+    stop_grace_period: 30s
+    env_file: .env
+    networks:
+      - local-db
+    volumes:
+      - media:/app/media
+    depends_on:
+      api:
+        condition: service_healthy
+volumes:
+  media:
+networks:
+  local-db:
+    external: true
+    name: ${LOCAL_NETWORK:-fit-or-not-local_default}

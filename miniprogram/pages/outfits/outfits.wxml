@@ -1,0 +1,43 @@
+<view class="page page--tab outfits-page">
+  <view class="page-top outfits-heading">
+    <view class="outfits-tabs">
+      <view class="outfits-tab {{activeTab === 'wear' ? 'outfits-tab--selected' : ''}}" data-tab="wear" bindtap="onTab" aria-role="button" aria-pressed="{{activeTab === 'wear'}}" hover-class="control--pressed">穿搭</view>
+      <view class="outfits-tab {{activeTab === 'outfits' ? 'outfits-tab--selected' : ''}}" data-tab="outfits" bindtap="onTab" aria-role="button" aria-pressed="{{activeTab === 'outfits'}}" hover-class="control--pressed">搭配</view>
+    </view>
+    <view wx:if="{{activeTab === 'outfits'}}" class="create-outfit" bindtap="onAdd" aria-role="button" hover-class="control--pressed"><image class="icon icon--small" src="/assets/icons/plus.svg" mode="aspectFit" />新建搭配</view>
+  </view>
+  <view wx:if="{{imageError}}" class="error">{{imageError}}</view>
+  <block wx:if="{{activeTab === 'wear'}}">
+  <view class="outfit-calendar">
+    <view class="outfit-calendar__heading"><view class="outfit-calendar__title"><image class="calendar-icon" src="/assets/icons/calendar.svg" mode="aspectFit" />{{calendarTitle}}</view><view class="outfit-calendar__actions"><button wx:if="{{expanded}}" class="calendar-arrow" data-offset="-1" bindtap="onMonth" aria-label="上个月"><image class="calendar-icon" src="/assets/icons/back.svg" mode="aspectFit" /></button><button wx:if="{{expanded}}" class="calendar-arrow" data-offset="1" bindtap="onMonth" aria-label="下个月"><image class="calendar-icon" src="/assets/icons/arrow.svg" mode="aspectFit" /></button><view class="calendar-expand" bindtap="onExpandCalendar" aria-role="button" aria-expanded="{{expanded}}">{{expanded ? '收起' : '展开月历'}}<image class="calendar-icon calendar-chevron {{expanded ? 'calendar-chevron--up' : ''}}" src="/assets/icons/chevron.svg" mode="aspectFit" /></view></view></view>
+    <view class="outfit-calendar__grid outfit-calendar__weekdays"><view wx:for="{{weekdays}}" wx:key="*this">{{item}}</view></view>
+    <view class="outfit-calendar__grid {{expanded ? 'outfit-calendar__grid--month' : ''}}">
+      <view wx:for="{{days}}" wx:key="date" class="outfit-day {{item.inMonth && item.selected ? 'outfit-day--selected' : ''}} {{item.isToday ? 'outfit-day--today' : ''}}" data-date="{{item.date}}" bindtap="onDate" aria-role="button" aria-label="{{item.date}}{{item.hasRecord ? ' 有穿搭记录' : ''}}" aria-pressed="{{item.selected}}">
+        <block wx:if="{{item.inMonth}}">
+          <text class="outfit-day__number">{{item.isToday ? '今' : item.number}}</text>
+          <image wx:if="{{!expanded && item.imageUrl}}" class="outfit-day__photo" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" />
+          <view wx:elif="{{item.hasRecord}}" class="outfit-day__dot" />
+        </block>
+      </view>
+    </view>
+    <view wx:if="{{!expanded}}" class="week-navigation"><view class="week-navigation__link" data-offset="-1" bindtap="onWeek" aria-role="button">上一周</view><view wx:if="{{selectedDate !== today}}" class="week-navigation__link" bindtap="onToday" aria-role="button">回到今天</view><text wx:else>{{month}}</text><view class="week-navigation__link" data-offset="1" bindtap="onWeek" aria-role="button">下一周</view></view>
+  </view>
+  <view class="section-head"><view class="section-title">{{selectedLabel}}的穿搭</view><text class="count-note">{{selectedWeekday}}</text></view>
+  <view wx:if="{{calendarError}}" class="error" bindtap="onRetryCalendar">{{calendarError}} · 点击重试</view>
+  <view wx:if="{{calendarLoading}}" class="state calendar-state">正在加载穿搭…</view>
+  <view wx:for="{{records}}" wx:key="id" class="daily-outfit" data-id="{{item.id}}" bindtap="onEditRecord" hover-class="control--pressed">
+    <view class="daily-outfit__photos"><image wx:for="{{item.images}}" wx:for-item="photo" wx:key="id" class="daily-outfit__photo" src="{{photo.url}}" data-url="{{photo.url}}" binderror="onImageError" mode="aspectFit" /></view><view class="daily-outfit__info"><view class="daily-outfit__status"><image class="calendar-icon" src="/assets/icons/check.svg" mode="aspectFit" />已记录</view><view class="daily-outfit__name">{{item.title}}</view><view class="card-meta">{{item.itemCount}} 件单品</view><view wx:if="{{item.notes}}" class="daily-outfit__note">{{item.notes}}</view><view class="daily-outfit__edit">查看 / 修改<image class="calendar-icon" src="/assets/icons/arrow.svg" mode="aspectFit" /></view></view>
+  </view>
+  <view wx:if="{{!records.length && calendarLoaded && !calendarLoading && !calendarError}}" class="daily-empty"><image class="daily-empty__icon" src="/assets/icons/{{canAdd ? 'shirt' : 'calendar'}}.svg" mode="aspectFit" /><text>{{canAdd ? '这一天还没有穿搭记录' : '这一天还没到'}}</text><t-button wx:if="{{canAdd}}" t-class="ui-button" theme="primary" size="small" bind:tap="onAddRecord">记录穿搭</t-button><view wx:else class="calendar-expand" bindtap="onToday">回到今天</view></view>
+  <view wx:if="{{records.length && canAdd}}" class="add-record" bindtap="onAddRecord" aria-role="button"><image class="calendar-icon" src="/assets/icons/plus.svg" mode="aspectFit" />再记一套</view>
+  </block>
+  <block wx:if="{{activeTab === 'outfits'}}">
+  <view class="section-head outfits-library-heading"><view class="section-title">我的搭配 <text class="count-note">{{total}} 套</text></view><view class="outfits-library-actions"><button class="library-icon" bindtap="onSearchToggle" aria-label="搜索搭配"><image class="icon icon--small" src="/assets/icons/search.svg" mode="aspectFit" /></button><view class="favorite-filter {{favorite ? 'favorite-filter--selected' : ''}}" bindtap="onFavorite" aria-role="button" aria-pressed="{{favorite}}"><image class="calendar-icon" src="/assets/icons/{{favorite ? 'heart-filled' : 'heart'}}.svg" mode="aspectFit" />收藏</view></view></view>
+  <view wx:if="{{searchOpen}}" class="search-row"><view class="search"><image class="icon icon--small" src="/assets/icons/search.svg" mode="aspectFit" /><input class="input grow" value="{{q}}" placeholder="搜索搭配名称" bindinput="onInput" bindconfirm="onSearch" confirm-type="search" maxlength="100" /></view></view>
+  <outfit-category-bar items="{{categories}}" value="{{categoryId}}" all="{{true}}" loading="{{categoriesLoading}}" error="{{categoriesError}}" busy="{{categoryBusy}}" create-error="{{categoryCreateError}}" bind:select="onCategory" bind:create="onCreateCategory" bind:retry="onRetryCategories" />
+  <view wx:if="{{error}}" class="error" bindtap="onRetryOutfits">{{error}} · 点击重试</view>
+  <view class="grid"><view wx:for="{{outfits}}" wx:key="id" class="outfit-card" data-id="{{item.id}}" bindtap="onOpen"><view class="outfit-cover" style="background-color:{{item.backgroundColor}}"><image wx:if="{{item.imageUrl}}" class="outfit-cover__image" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" /><image wx:for="{{item.layers}}" wx:for-item="layer" wx:key="clothingId" class="outfit-cover__layer" src="{{layer.imageUrl}}" data-url="{{layer.imageUrl}}" binderror="onImageError" style="{{layer.style}}" mode="aspectFit" /></view><view class="outfit-name">{{item.name}}</view><view class="card-meta">{{item.categoryName || '未分类'}} · {{item.itemCount}} 件单品</view></view></view>
+  <view wx:if="{{loading}}" class="state">正在加载搭配…</view><view wx:elif="{{!outfits.length && !error}}" class="empty-state outfits-empty"><image class="empty-icon" src="/assets/icons/layers.svg" mode="aspectFit" /><view class="empty-title">{{q ? '没有找到搭配' : favorite ? '还没有收藏的搭配' : categoryId ? '这个分类还没有搭配' : '还没有保存的搭配'}}</view><t-button t-class="ui-button" size="small" bind:tap="onAdd">新建搭配</t-button></view>
+  </block>
+</view>
+<app-sheet visible="{{showCreate}}" title="新建搭配" size="small" bind:close="onCloseCreate"><view class="create-option" bindtap="onManualCreate" aria-role="button"><image class="icon" src="/assets/icons/shirt.svg" mode="aspectFit" /><text>从衣橱挑选</text><image class="icon icon--small" src="/assets/icons/arrow.svg" mode="aspectFit" /></view><view class="create-option" bindtap="onRecommend" aria-role="button"><image class="icon" src="/assets/icons/sparkles.svg" mode="aspectFit" /><text>智能搭配</text><image class="icon icon--small" src="/assets/icons/arrow.svg" mode="aspectFit" /></view></app-sheet>

@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "搭搭不搭搭",
+  "usingComponents": {
+    "t-button": "tdesign-miniprogram/button/button"
+  }
+}

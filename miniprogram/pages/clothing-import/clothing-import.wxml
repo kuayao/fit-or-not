@@ -1,0 +1,32 @@
+<view class="page page--form import-page">
+  <view wx:if="{{photos.length}}" class="import-toolbar">
+    <view class="grow"><view class="import-toolbar__title">{{photos.length}} 张照片</view><view class="import-toolbar__summary">单件 {{singleCount}} · 套装 {{setCount}}</view></view>
+    <button class="icon-button import-toolbar__button" disabled="{{busy || loading || photos.length >= 20}}" bindtap="onAdd" aria-label="继续添加照片"><image class="icon" src="/assets/icons/plus.svg" mode="aspectFit" /></button>
+    <button class="icon-button import-toolbar__button import-toolbar__button--history" bindtap="onTasks" aria-label="处理与审核"><image class="icon" src="/assets/icons/clock.svg" mode="aspectFit" /></button>
+  </view>
+  <view wx:if="{{loading}}" class="state">正在加载…</view>
+  <view wx:if="{{error}}" class="error" bindtap="onRetry">{{error}} · 点击重试</view>
+  <view wx:if="{{!photos.length && !loading}}" class="import-empty">
+    <button class="import-entry" bindtap="onAdd" hover-class="import-entry--pressed" aria-label="选择衣物照片，最多 20 张">
+      <view class="import-entry__art" aria-hidden="true">
+        <view class="import-entry__photo import-entry__photo--back"><image class="import-entry__illustration" src="/assets/icons/image.svg" mode="aspectFit" /></view>
+        <view class="import-entry__photo import-entry__photo--front"><image class="import-entry__illustration" src="/assets/icons/hanger.svg" mode="aspectFit" /></view>
+        <view class="import-entry__add"><image class="import-entry__plus" src="/assets/icons/plus.svg" mode="aspectFit" /></view>
+      </view>
+      <view class="import-entry__title">选择照片</view>
+      <view class="import-entry__hint">单件或套装 · 最多 20 张</view>
+    </button>
+    <view class="import-history" bindtap="onTasks" hover-class="control--pressed" aria-role="button" aria-label="查看处理与审核">
+      <view class="import-history__symbol"><image class="import-history__icon" src="/assets/icons/clock.svg" mode="aspectFit" /></view>
+      <view class="import-history__label">处理与审核</view><image class="import-history__arrow" src="/assets/icons/chevron.svg" mode="aspectFit" />
+    </view>
+  </view>
+  <view wx:if="{{photos.length}}" class="import-grid">
+    <view wx:for="{{photos}}" wx:key="id" class="import-photo">
+      <view class="import-photo__visual"><image class="import-photo__image" src="{{item.path}}" mode="aspectFit" data-id="{{item.id}}" bindtap="onPreview" /><button wx:if="{{!item.locked}}" class="icon-button import-photo__remove" data-id="{{item.id}}" bindtap="onRemove" disabled="{{busy}}" aria-label="移除照片"><image class="icon" src="/assets/icons/close.svg" mode="aspectFit" /></button></view>
+      <view class="import-photo__modes"><view class="chip {{item.mode === 'single' ? 'chip--selected' : ''}}" data-id="{{item.id}}" data-mode="single" bindtap="onMode">单件</view><view class="chip {{item.mode === 'set' ? 'chip--selected' : ''}}" data-id="{{item.id}}" data-mode="set" bindtap="onMode">套装</view></view>
+      <view wx:if="{{item.submitted}}" class="form-hint">已进入队列</view><view wx:elif="{{item.error}}" class="error">{{item.error}}</view><view wx:elif="{{item.locked && busy}}" class="form-hint">正在提交…</view>
+    </view>
+  </view>
+  <view wx:if="{{photos.length}}" class="bottom-action"><t-button t-class="ui-button" class="button-block" block theme="primary" loading="{{busy}}" disabled="{{busy || loading || !available || !pendingCount}}" bind:tap="onStart">开始识别 {{pendingCount}} 张</t-button></view>
+</view>

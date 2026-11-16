@@ -1,0 +1,10 @@
+<view class="page recommendation-detail">
+  <view wx:if="{{loading}}" class="state">正在加载搭配…</view>
+  <view wx:if="{{error}}" class="error" bindtap="onRetry">{{error}} · 点击重试</view>
+  <block wx:if="{{outfit}}">
+    <view class="recommendation-detail__canvas {{items.length > 3 ? 'recommendation-detail__canvas--grid' : ''}}"><image wx:for="{{items}}" wx:key="clothingId" class="recommendation-detail__image" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" /></view>
+    <view class="recommendation-detail__name">{{outfit.name}}</view><view class="recommendation-detail__reason">{{outfit.reason}}</view>
+    <view class="recommendation-detail__heading">搭配里的单品<text>{{items.length}} 件</text></view>
+    <view class="recommendation-detail__items"><button wx:for="{{items}}" wx:key="clothingId" class="recommendation-detail__item" data-id="{{item.clothingId}}" bindtap="onClothing"><image class="recommendation-detail__photo" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" /><view>{{item.name}}</view></button></view>
+  </block>
+</view>
