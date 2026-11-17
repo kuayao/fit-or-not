@@ -4,7 +4,7 @@
     <view wx:if="{{section === 'items'}}" class="wardrobe-tools">
       <button class="icon-button {{managing ? 'wardrobe-manage--active' : ''}}" bindtap="onManage" disabled="{{busy}}" aria-label="{{managing ? '结束整理' : '批量整理'}}"><text wx:if="{{managing}}">完成</text><image wx:else class="icon" src="/assets/icons/check.svg" mode="aspectFit" /></button>
       <button class="icon-button" bindtap="onToggleSearch" aria-label="搜索衣物"><image class="icon" src="/assets/icons/search.svg" mode="aspectFit" /></button>
-      <button class="icon-button" bindtap="onFilters" aria-label="筛选衣物"><image class="icon" src="/assets/icons/filter.svg" mode="aspectFit" /><view wx:if="{{favorite || color || season || occasionIds || sortIndex}}" class="wardrobe-filter-dot" /></button>
+      <button class="icon-button" bindtap="onFilters" aria-label="筛选衣物"><image class="icon" src="/assets/icons/filter.svg" mode="aspectFit" /><view wx:if="{{favorite || missingSubcategory || color || season || occasionIds || sortIndex}}" class="wardrobe-filter-dot" /></button>
       <button class="icon-button" bindtap="onWardrobeMenu" aria-label="更多衣橱操作"><image class="icon" src="/assets/icons/more.svg" mode="aspectFit" /></button>
     </view>
   </view>
@@ -15,13 +15,13 @@
   </view>
   <view class="wardrobe-sets" hidden="{{section !== 'sets'}}"><clothing-sets refresh="{{setRefresh}}" /></view>
   <view wx:if="{{searchOpen && section === 'items'}}" class="wardrobe-search"><view class="search"><image class="icon icon--small" src="/assets/icons/search.svg" mode="aspectFit" /><input class="input grow" value="{{q}}" bindinput="onSearchInput" bindconfirm="onSearch" confirm-type="search" placeholder="寻找一件衣物…" /></view></view>
-  <view wx:if="{{archived && section === 'items'}}" class="notice wardrobe-notice">归档保留历史记录，衣物随时可以恢复。<view class="text-button" bindtap="onArchived">返回日常衣橱</view></view>
+  <view wx:if="{{archived && section === 'items'}}" class="notice wardrobe-notice"><view class="text-button" bindtap="onArchived">返回日常衣橱</view></view>
   <view class="wardrobe-body" hidden="{{section !== 'items'}}">
     <scroll-view wx:if="{{!sidebarCollapsed}}" scroll-y enhanced class="wardrobe-sidebar" show-scrollbar="{{false}}">
       <view class="wardrobe-category {{!draft && !rootCategoryId ? 'wardrobe-category--selected' : ''}}" data-id="" bindtap="onRootCategory" aria-role="button" aria-label="全部一级分类" aria-pressed="{{!draft && !rootCategoryId}}"><image class="wardrobe-category__icon" src="/assets/icons/grid.svg" mode="aspectFit" /><text>全部</text></view>
       <view class="wardrobe-category {{draft ? 'wardrobe-category--selected' : ''}}" bindtap="onReviewCategory" aria-role="button" aria-label="待核对衣物" aria-pressed="{{draft}}"><image class="wardrobe-category__icon" src="/assets/icons/clock.svg" mode="aspectFit" /><text>待核对</text></view>
       <view wx:for="{{rootCategories}}" wx:key="id" class="wardrobe-category {{!draft && rootCategoryId === item.id ? 'wardrobe-category--selected' : ''}}" data-id="{{item.id}}" bindtap="onRootCategory" aria-role="button" aria-pressed="{{!draft && rootCategoryId === item.id}}"><image class="wardrobe-category__icon" src="/assets/icons/{{item.icon}}.svg" mode="aspectFit" /><text>{{item.name}}</text></view>
-      <view wx:if="{{taxonomyLoading && !rootCategories.length}}" class="wardrobe-sidebar__state">加载中…</view>
+      <app-loading wx:if="{{taxonomyLoading && !rootCategories.length}}" variant="compact" text="加载中" />
     </scroll-view>
     <view class="wardrobe-divider"><button class="wardrobe-collapse" bindtap="onToggleSidebar" aria-label="{{sidebarCollapsed ? '展开一级分类' : '收起一级分类'}}"><image class="wardrobe-collapse__icon {{sidebarCollapsed ? 'wardrobe-collapse__icon--open' : ''}}" src="/assets/icons/back.svg" mode="aspectFit" /></button></view>
     <scroll-view class="wardrobe-content" scroll-y enhanced show-scrollbar="{{false}}" lower-threshold="200" bindscrolltolower="onLoadMore">
@@ -35,23 +35,30 @@
   <view wx:if="{{error}}" class="error" bindtap="onRetryClothes">{{error}} · 点击重试</view>
 
   <view wx:if="{{loading && !clothes.length && !imports.length}}" class="skeleton-grid"><view wx:for="{{[1,2,3,4]}}" wx:key="*this"><view class="skeleton" /><view class="skeleton-line" /></view></view>
-  <view wx:if="{{draft && imports.length}}" class="unfinished-imports">
+  <view wx:if="{{imports.length}}" class="unfinished-imports">
     <view class="unfinished-imports__heading">未完成的照片 · {{importTotal}} 张</view>
     <view wx:for="{{imports}}" wx:key="id" class="unfinished-import" data-id="{{item.id}}" bindtap="onImport" aria-role="button" aria-label="{{item.pending ? '正在定位衣物' : '识别未完成，点击处理'}}">
       <image class="unfinished-import__image" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" />
-      <view class="unfinished-import__content"><view class="unfinished-import__status">{{item.pending ? '正在定位衣物' : '识别未完成'}}</view><view class="unfinished-import__name">{{item.name || '套装照片'}}</view><view class="unfinished-import__hint">{{item.pending ? '完成后自动更新' : '未生成单品 · 点击处理'}}</view></view>
+      <view class="unfinished-import__content"><view class="unfinished-import__status">{{item.pending ? '正在定位衣物' : '识别未完成'}}</view><view class="unfinished-import__name">{{item.name || '套装照片'}}</view></view>
       <image class="unfinished-import__arrow" src="/assets/icons/chevron.svg" mode="aspectFit" />
     </view>
   </view>
   <view class="grid">
     <view wx:for="{{clothes}}" wx:key="id" class="clothing-card {{item.selected ? 'clothing-card--selected' : ''}}">
-      <view class="clothing-visual" data-id="{{item.id}}" bindtap="onClothing" aria-role="button" aria-disabled="{{item.processing}}" aria-label="{{item.processing ? item.processText : item.name}}">
+      <view class="clothing-visual {{item.processing ? 'clothing-visual--processing' : ''}}" data-id="{{item.id}}" bindtap="onClothing" aria-role="button" aria-disabled="{{item.processing}}" aria-label="{{item.processing ? item.processText : item.name}}">
         <image class="garment" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" />
         <view wx:if="{{managing && !item.processing}}" class="clothing-selection {{item.selected ? 'clothing-selection--selected' : ''}}"><image wx:if="{{item.selected}}" class="clothing-selection__icon" src="/assets/icons/check.svg" mode="aspectFit" /></view>
         <view wx:if="{{item.processing}}" class="clothing-processing">
-          <image class="clothing-processing__icon" src="/assets/icons/sparkles.svg" mode="aspectFit" />
-          <view class="clothing-processing__title">{{item.processText}}</view>
-          <view class="clothing-processing__hint">完成后自动更新</view>
+          <view class="clothing-processing__scan" aria-hidden="true" />
+          <view class="clothing-processing__content">
+            <view class="clothing-processing__stars" aria-hidden="true">
+              <image class="clothing-processing__star" src="/assets/icons/sparkles-gradient.svg" mode="aspectFit" />
+              <image class="clothing-processing__satellite clothing-processing__satellite--left" src="/assets/icons/sparkles-gradient.svg" mode="aspectFit" />
+              <image class="clothing-processing__satellite clothing-processing__satellite--right" src="/assets/icons/sparkles-gradient.svg" mode="aspectFit" />
+            </view>
+            <view class="clothing-processing__title">{{item.processText}}</view>
+            <view class="clothing-processing__activity" aria-hidden="true"><view class="clothing-processing__light" /></view>
+          </view>
         </view>
       </view>
       <button wx:if="{{!managing && item.status !== 'draft' && !item.processing}}" class="icon-button heart-button {{item.favorite ? 'heart-button--selected' : ''}}" disabled="{{busy || loading}}" data-id="{{item.id}}" bindtap="onCardFavorite" aria-label="{{item.favorite ? '取消收藏' : '收藏'}}"><image class="icon" src="/assets/icons/{{item.favorite ? 'heart-filled' : 'heart'}}.svg" mode="aspectFit" /></button>
@@ -60,13 +67,12 @@
       <view class="card-meta"><text class="label-dot" />{{item.categoryName || (item.processing ? '分类待识别' : '分类待确认')}} · {{item.colorText || (item.processing ? '色系待识别' : '色系待确认')}}</view>
     </view>
   </view>
-  <view wx:if="{{loading && clothes.length}}" class="state">正在加载衣物…</view>
-  <view wx:if="{{loaded && !loading && !clothes.length && (!draft || !imports.length) && !error}}" class="empty-state">
+  <app-loading wx:if="{{loading && clothes.length}}" text="正在加载衣物" />
+  <view wx:if="{{loaded && !loading && !clothes.length && !imports.length && !error}}" class="empty-state">
     <image class="empty-icon" src="/assets/icons/project-mark-clasp.svg" mode="aspectFit" />
-    <view class="empty-title">{{q || categoryId || favorite || color || season || occasionIds || tagId ? '这里还没有衣物' : draft ? '暂无待核对衣物' : '衣橱空空如也'}}</view>
-    <view wx:if="{{!draft}}" class="empty-copy">{{q || categoryId || favorite || color || season || occasionIds || tagId ? '换个分类或筛选，也可以添一件新衣物。' : '拍照或从相册添加你的第一件衣物吧'}}</view>
+    <view class="empty-title">{{q || categoryId || favorite || missingSubcategory || color || season || occasionIds || tagId ? '这里还没有衣物' : draft ? '暂无待核对衣物' : '衣橱空空如也'}}</view>
     <t-button t-class="ui-button" theme="primary" bind:tap="onAdd">添加衣物</t-button>
-    <view wx:if="{{q || categoryId || favorite || color || season || occasionIds || tagId}}" class="text-button text-button--center" bindtap="onClearFilters">清除筛选</view>
+    <view wx:if="{{q || categoryId || favorite || missingSubcategory || color || season || occasionIds || tagId}}" class="text-button text-button--center" bindtap="onClearFilters">清除筛选</view>
   </view>
       </view>
     </scroll-view>
@@ -83,13 +89,13 @@
 <app-sheet visible="{{filtersOpen}}" title="筛选衣物" scrollable bind:close="onCloseFilters">
   <view class="sheet-note">选择你想看的衣物。</view>
   <view class="sheet-option {{filterFavorite ? 'sheet-option--selected' : ''}}" bindtap="onFilterFavorite" hover-class="control--pressed" aria-role="button" aria-pressed="{{filterFavorite}}"><image class="icon icon--small" src="/assets/icons/heart.svg" mode="aspectFit" /><text class="sheet-option__name">只看收藏</text><view class="sheet-option__check"><image wx:if="{{filterFavorite}}" class="sheet-option__check-image" src="/assets/icons/check.svg" mode="aspectFit" /></view></view>
-  <view wx:if="{{taxonomyLoading}}" class="sheet-note">正在加载筛选选项…</view>
+  <view class="sheet-option {{filterMissingSubcategory ? 'sheet-option--selected' : ''}}" bindtap="onFilterMissingSubcategory" hover-class="control--pressed" aria-role="button" aria-pressed="{{filterMissingSubcategory}}"><image class="icon icon--small" src="/assets/icons/grid.svg" mode="aspectFit" /><text class="sheet-option__name">未设置二级分类</text><view class="sheet-option__check"><image wx:if="{{filterMissingSubcategory}}" class="sheet-option__check-image" src="/assets/icons/check.svg" mode="aspectFit" /></view></view>
+  <app-loading wx:if="{{taxonomyLoading}}" text="正在加载筛选选项" />
   <view wx:elif="{{taxonomyError}}" class="error" bindtap="onRetryTaxonomy">{{taxonomyError}} · 点击重试</view>
-  <view class="filter-sheet__group"><view class="field-label">场景 · 可多选</view><view class="sheet-tags sheet-tags--pair"><view wx:for="{{filterOccasions}}" wx:key="id" class="sheet-tag {{item.selected ? 'sheet-tag--selected' : ''}}" data-id="{{item.id}}" bindtap="onFilterOccasion" hover-class="control--pressed" aria-role="button" aria-pressed="{{item.selected}}">{{item.name}}</view></view><view wx:if="{{!taxonomyLoading && !taxonomyError && !filterOccasions.length}}" class="form-hint">还没有场景标签，可在“我的 → 分类与标签”中添加。</view></view>
+  <view class="filter-sheet__group"><view class="field-label">场景 · 可多选</view><view class="sheet-tags sheet-tags--pair"><view wx:for="{{filterOccasions}}" wx:key="id" class="sheet-tag {{item.selected ? 'sheet-tag--selected' : ''}}" data-id="{{item.id}}" bindtap="onFilterOccasion" hover-class="control--pressed" aria-role="button" aria-pressed="{{item.selected}}">{{item.name}}</view></view><view wx:if="{{!taxonomyLoading && !taxonomyError && !filterOccasions.length}}" class="form-hint">暂无场景标签</view></view>
   <view class="filter-sheet__group"><view class="field-label">色系 · 可多选</view><view class="color-options"><view wx:for="{{filterColors}}" wx:key="value" class="color-option {{item.selected ? 'color-option--selected' : ''}}" style="background:{{item.swatch}}" data-value="{{item.value}}" bindtap="onColor" aria-role="button" aria-label="{{item.label}}" aria-pressed="{{item.selected}}" /></view></view>
   <view class="filter-sheet__group"><view class="field-label">季节 · 可多选</view><view class="sheet-tags sheet-tags--seasons"><view wx:for="{{filterSeasons}}" wx:key="value" class="sheet-tag {{item.selected ? 'sheet-tag--selected' : ''}}" data-value="{{item.value}}" bindtap="onSeason" hover-class="control--pressed" aria-role="button" aria-pressed="{{item.selected}}">{{item.label}}</view></view></view>
   <view class="filter-sheet__group"><view class="field-label">排序</view><view class="sheet-tags sheet-tags--pair"><view wx:for="{{sortLabels}}" wx:key="*this" class="sheet-tag {{filterSortIndex === index ? 'sheet-tag--selected' : ''}}" data-index="{{index}}" bindtap="onSort" hover-class="control--pressed" aria-role="button" aria-pressed="{{filterSortIndex === index}}">{{item}}</view></view></view>
-  <view class="form-hint">不选表示不限；同一组匹配任一选项，各组条件同时满足。</view>
   <view slot="footer"><t-button t-class="ui-button" class="button-block" block custom-style="display:flex;width:100%" theme="primary" bind:tap="onApplyFilters">查看结果</t-button><view class="sheet-link" bindtap="onClearFilters" aria-role="button" hover-class="control--pressed">清除全部筛选</view></view>
 </app-sheet>
 
@@ -99,7 +105,7 @@
       <button wx:for="{{batchFields}}" wx:key="id" class="batch-cascade__tab {{batchField === item.id ? 'batch-cascade__tab--selected' : ''}}" disabled="{{busy || batchLoading}}" data-id="{{item.id}}" bindtap="onBatchField" aria-pressed="{{batchField === item.id}}">{{item.name}}</button>
     </scroll-view>
     <view class="batch-cascade__main">
-      <view wx:if="{{batchLoading}}" class="batch-cascade__state">正在加载…</view>
+      <app-loading wx:if="{{batchLoading}}" text="正在加载" />
       <view wx:elif="{{batchTaxonomyError}}" class="batch-cascade__state error" bindtap="onRetryBatchTaxonomy">{{batchTaxonomyError}} · 点击重试</view>
       <view wx:elif="{{batchField === 'categoryId'}}" class="batch-cascade__categories">
         <view class="batch-cascade__column batch-cascade__column--roots">

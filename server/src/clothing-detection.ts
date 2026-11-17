@@ -8,6 +8,7 @@ import { HttpError } from './errors.js';
 import { DETECTION_PROMPT } from './image-prompts.js';
 import { readLimited } from './ai-images.js';
 import type { AiJob } from './ai-images.js';
+import { providerFailure } from './provider-failure.js';
 import { createImportMember } from './clothing-imports.js';
 
 export async function processClothingDetection(job: AiJob) {
@@ -17,13 +18,13 @@ export async function processClothingDetection(job: AiJob) {
     void pool.query<{ cancel_requested: boolean }>("UPDATE image_jobs SET heartbeat_at=now(),lease_expires_at=now()+interval '30 seconds' WHERE id=$1 AND status='running' RETURNING cancel_requested", [job.id]).then(result => { if (!result.rows.length || result.rows[0].cancel_requested) controller.abort(); }).catch(() => controller.abort());
   }, 5000);
   try {
-    if (!config.NEW_API_KEY) throw new HttpError(503, 'SERVICE_NOT_CONFIGURED', '请配置 New API 密钥');
+    if (!config.NEW_API_KEY) throw new HttpError(503, 'SERVICE_NOT_CONFIGURED', '图片处理暂不可用，请稍后再试');
     const input = await pool.query<{ storage_key: string; mime_type: string }>("SELECT storage_key,mime_type FROM media_assets WHERE user_id=$1 AND id=$2 AND status='ready'", [job.user_id, job.input_asset_id]);
     if (!input.rows.length) throw new HttpError(404, 'RESOURCE_NOT_FOUND', '输入图片不可用');
     state.detection = { model: config.AI_RECOGNITION_MODEL, promptRevision: 'locate-v2', startedAt: new Date().toISOString(), delivery: 'submitting' };
     await pool.query("UPDATE image_jobs SET phase='正在定位套装成员',processing_state=$2 WHERE id=$1", [job.id, JSON.stringify(state)]);
     const response = await fetch(`${config.NEW_API_BASE_URL.replace(/\/$/, '')}/chat/completions`, {
-      method: 'POST', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(config.AI_RECOGNITION_TIMEOUT_MS)]),
+      method: 'POST', redirect: 'error', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(config.AI_RECOGNITION_TIMEOUT_MS)]),
       headers: { Authorization: `Bearer ${config.NEW_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: config.AI_RECOGNITION_MODEL, reasoning_effort: 'medium', max_completion_tokens: 2048, response_format: { type: 'json_object' }, messages: [
         { role: 'system', content: DETECTION_PROMPT },
@@ -56,7 +57,13 @@ export async function processClothingDetection(job: AiJob) {
       await client.query("UPDATE image_jobs SET status='succeeded',phase=$2,result=$3,processing_state=$4,finished_at=now(),lease_expires_at=NULL WHERE id=$1", [job.id, `已定位 ${detection.targets.length} 件`, JSON.stringify({ detection }), JSON.stringify(state)]);
     });
   } catch (error) {
-    if (state.detection?.delivery === 'submitting') state.detection.delivery = 'unknown';
-    await pool.query("UPDATE image_jobs SET status=CASE WHEN cancel_requested THEN 'cancelled' ELSE 'failed' END,phase=$2,error_code=$3,processing_state=$4,finished_at=now(),lease_expires_at=NULL WHERE id=$1 AND status='running'", [job.id, error instanceof HttpError ? error.message : '套装定位未完成，请核对照片', state.detection?.delivery === 'unknown' ? 'PROVIDER_PENDING' : error instanceof HttpError ? error.code : 'INVALID_MODEL_RESPONSE', JSON.stringify(state)]);
+    const failure = providerFailure(error);
+    if (state.detection) {
+      state.detection.failure = failure;
+      state.detection.finishedAt = new Date().toISOString();
+      if (state.detection.delivery === 'submitting') state.detection.delivery = !state.detection.requestId && failure.notSent ? 'not-sent' : 'unknown';
+    }
+    console.error(JSON.stringify({ event: 'ai_provider_failed', jobId: job.id, stage: 'detection', requestId: state.detection?.requestId, delivery: state.detection?.delivery, ...failure }));
+    await pool.query("UPDATE image_jobs SET status=CASE WHEN cancel_requested THEN 'cancelled' ELSE 'failed' END,phase=$2,error_code=$3,processing_state=$4,finished_at=now(),lease_expires_at=NULL WHERE id=$1 AND status='running'", [job.id, state.detection?.delivery === 'unknown' ? '处理未完成，请重试' : state.detection?.delivery === 'not-sent' ? '连接模型服务失败，请重试' : error instanceof HttpError ? error.message : '套装定位未完成，请核对照片', state.detection?.delivery === 'unknown' ? 'PROVIDER_PENDING' : state.detection?.delivery === 'not-sent' ? 'PROVIDER_CONNECTION_FAILED' : error instanceof HttpError ? error.code : 'INVALID_MODEL_RESPONSE', JSON.stringify(state)]);
   } finally { clearInterval(heartbeat); }
 }

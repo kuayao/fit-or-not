@@ -4,7 +4,7 @@
     <button class="icon-button import-toolbar__button" disabled="{{busy || loading || photos.length >= 20}}" bindtap="onAdd" aria-label="继续添加照片"><image class="icon" src="/assets/icons/plus.svg" mode="aspectFit" /></button>
     <button class="icon-button import-toolbar__button import-toolbar__button--history" bindtap="onTasks" aria-label="处理与审核"><image class="icon" src="/assets/icons/clock.svg" mode="aspectFit" /></button>
   </view>
-  <view wx:if="{{loading}}" class="state">正在加载…</view>
+  <app-loading wx:if="{{loading}}" variant="{{photos.length ? 'inline' : 'detail'}}" text="正在加载" />
   <view wx:if="{{error}}" class="error" bindtap="onRetry">{{error}} · 点击重试</view>
   <view wx:if="{{!photos.length && !loading}}" class="import-empty">
     <button class="import-entry" bindtap="onAdd" hover-class="import-entry--pressed" aria-label="选择衣物照片，最多 20 张">

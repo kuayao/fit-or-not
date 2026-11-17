@@ -1,4 +1,4 @@
-<view wx:if="{{loading}}" class="category-status">正在加载分类…</view>
+<app-loading wx:if="{{loading}}" text="正在加载分类" />
 <view wx:if="{{error}}" class="error" bindtap="onRetry">{{error}} · 点击重试</view>
 <view class="outfit-categories {{list ? 'outfit-categories--list' : ''}}">
   <button size="mini" class="outfit-category {{!value ? 'outfit-category--selected' : ''}}" data-id="" bindtap="onSelect" aria-pressed="{{!value}}" hover-class="control--pressed"><text>{{all ? '全部' : '未分类'}}</text><image wx:if="{{list && !value}}" class="category-check" src="/assets/icons/check.svg" mode="aspectFit" /></button>

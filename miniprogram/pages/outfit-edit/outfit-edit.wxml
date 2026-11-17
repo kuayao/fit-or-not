@@ -14,7 +14,7 @@
         </view>
         <view wx:if="{{!selectedCount}}" class="canvas-empty"><image class="canvas-empty__icon" src="/assets/icons/shirt.svg" mode="aspectFit" /><text>从衣橱挑选第一件衣物</text></view>
       </view>
-      <view wx:if="{{loading}}" class="canvas-state">正在加载搭配…</view>
+      <view wx:if="{{loading}}" class="canvas-state"><app-loading text="正在加载搭配" /></view>
       <view wx:if="{{loadError}}" class="canvas-state"><text>{{loadError}}</text><button class="editor-link" catchtap="onRetry">重试</button></view>
       <view wx:if="{{error}}" class="canvas-notice" aria-role="alert">{{error}}</view>
     </view>
@@ -47,7 +47,7 @@
 
 <app-sheet visible="{{sheet === 'category'}}" title="搭配分类" scrollable busy="{{busy || categoryBusy}}" bind:close="onCloseSheet"><outfit-category-bar wx:if="{{sheet === 'category'}}" list items="{{categories}}" value="{{categoryId}}" loading="{{categoriesLoading}}" error="{{categoriesError}}" busy="{{busy || categoryBusy}}" create-error="{{categoryCreateError}}" bind:select="onCategory" bind:create="onCreateCategory" bind:retry="onRetryCategories" /></app-sheet>
 <app-sheet visible="{{sheet === 'occasion'}}" title="使用场景" scrollable busy="{{busy}}" bind:close="onCloseSheet">
-  <view wx:if="{{occasionsLoading}}" class="state">正在加载场景…</view><view wx:elif="{{occasionsError}}" class="sheet-load-error"><text>{{occasionsError}}</text><button class="editor-link" bindtap="onRetryOccasions">重试</button></view>
+  <app-loading wx:if="{{occasionsLoading}}" text="正在加载场景" /><view wx:elif="{{occasionsError}}" class="sheet-load-error"><text>{{occasionsError}}</text><button class="editor-link" bindtap="onRetryOccasions">重试</button></view>
   <view wx:else class="sheet-options"><button class="sheet-option {{!occasion ? 'sheet-option--selected' : ''}}" data-value="" bindtap="onOccasion"><text class="sheet-option__name">未指定</text><image wx:if="{{!occasion}}" class="icon icon--small" src="/assets/icons/check.svg" mode="aspectFit" /></button><button wx:for="{{occasions}}" wx:key="id" class="sheet-option {{occasion === item.name ? 'sheet-option--selected' : ''}}" data-value="{{item.name}}" bindtap="onOccasion"><text class="sheet-option__name">{{item.name}}</text><image wx:if="{{occasion === item.name}}" class="icon icon--small" src="/assets/icons/check.svg" mode="aspectFit" /></button><view wx:if="{{!occasions.length}}" class="form-hint">还没有场景，可以直接填写</view></view>
   <view class="field"><view class="field-label">自定义场景</view><input class="input" maxlength="60" value="{{occasionDraft}}" bindinput="onOccasionInput" placeholder="例如：周末出游" /></view><view slot="footer"><t-button t-class="ui-button" class="button-block" block="{{true}}" custom-style="display:flex;width:100%" theme="primary" bind:tap="onConfirmOccasion">确认</t-button></view>
 </app-sheet>

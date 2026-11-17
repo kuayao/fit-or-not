@@ -25,7 +25,8 @@
       </view>
     </view>
     <view class="job-card__name">{{item.clothingName || (item.kind === 'outfit-cover' ? '搭配封面' : '待识别衣物')}}</view>
+    <view wx:if="{{!item.pending && item.kind !== 'outfit-cover' && (item.providerPending || item.result.canRetry)}}" class="job-card__retry"><t-button t-class="ui-button" size="small" variant="outline" disabled="{{busy || loading}}" data-id="{{item.id}}" bind:tap="onRetryJob">{{item.providerPending ? '重新处理' : '重试未完成部分'}}</t-button></view>
   </view>
-  <view wx:if="{{loading}}" class="state">正在加载任务…</view>
+  <app-loading wx:if="{{loading}}" variant="{{jobs.length || imports.length ? 'inline' : 'list'}}" text="正在加载任务" />
   <view wx:elif="{{!jobs.length && !imports.length && !error}}" class="state">暂无处理任务</view>
 </view>

@@ -1,3 +1,5 @@
+@import "../../styles/clothing-processing.wxss";
+
 .wardrobe { height: 100vh; box-sizing: border-box; padding-bottom: calc(124rpx + env(safe-area-inset-bottom)); display: flex; flex-direction: column; overflow: hidden; }
 .wardrobe-header { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; padding: 26rpx 24rpx 24rpx; }
 .wardrobe-heading { display: flex; align-items: center; gap: 12rpx; min-width: 0; }
@@ -41,13 +43,7 @@ button.wardrobe-collapse { position: absolute; left: -18rpx; top: 48%; width: 36
 .clothing-selection--selected { background: var(--primary); border-color: var(--primary); }
 .clothing-selection__icon { width: 28rpx; height: 28rpx; filter: brightness(0) invert(1); }
 .clothing-card--selected { outline: 2px solid var(--accent); border-radius: var(--radius); }
-.clothing-processing { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12rpx; padding: 24rpx; background: #F0F6FBE6; color: var(--primary); text-align: center; }
-.clothing-processing__icon { width: 44rpx; height: 44rpx; animation: clothing-processing-pulse 1.8s ease-in-out infinite; }
-.clothing-processing__title { font-size: 25rpx; }
-.clothing-processing__hint { font-size: 21rpx; color: var(--muted); }
 .clothing-review { display: inline-flex; margin-top: 14rpx; }
-@keyframes clothing-processing-pulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
-
 
 .filter-sheet__group { margin: 28rpx 0; }
 
@@ -94,5 +90,4 @@ button.batch-cascade__option--tile.batch-cascade__option--selected { background:
 .unfinished-import__content { flex: 1; min-width: 0; }
 .unfinished-import__status { color: var(--primary); font-size: 25rpx; font-weight: 500; }
 .unfinished-import__name { margin: 8rpx 0; font-size: 23rpx; overflow-wrap: anywhere; }
-.unfinished-import__hint { color: var(--muted); font-size: 21rpx; line-height: 1.5; }
 .unfinished-import__arrow { width: 24rpx; height: 24rpx; flex-shrink: 0; }

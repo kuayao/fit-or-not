@@ -6,7 +6,7 @@ import { pool, transaction } from './db.js';
 import type { Database } from './db.js';
 import { pageQuerySchema, readClothing, requireAssets, saveClothing } from './clothes.js';
 import { saveClothingSet } from './clothing-sets.js';
-import { jobColumns } from './jobs.js';
+import { jobColumns, unconfirmedProviderCall } from './jobs.js';
 import { idempotent } from './idempotency.js';
 import { config } from './config.js';
 import { HttpError, notFound, versionConflict } from './errors.js';
@@ -37,7 +37,7 @@ export async function refreshImportStatus(importId: string | null) {
 export const clothingImportsRouter = Router();
 clothingImportsRouter.post('/', async (req, res) => {
   const input = z.object({ inputAssetId: idSchema, mode: z.enum(['single', 'set']) }).strict().parse(req.body);
-  if (!config.NEW_API_KEY) throw new HttpError(503, 'SERVICE_NOT_CONFIGURED', '请先配置 New API，再开始识别');
+  if (!config.NEW_API_KEY) throw new HttpError(503, 'SERVICE_NOT_CONFIGURED', '图片处理暂不可用，请稍后再试');
   res.status(202).json({ data: await idempotent(res.locals.user.id, '/clothing-imports', req.get('Idempotency-Key'), input, async client => {
     await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [`import:${res.locals.user.id}:${input.inputAssetId}`]);
     await requireAssets(client, res.locals.user.id, [input.inputAssetId], ['original']);
@@ -61,15 +61,15 @@ clothingImportsRouter.get('/:id', async (req, res) => res.json({ data: await rea
 clothingImportsRouter.post('/:id/redetect', async (req, res) => {
   const id = idSchema.parse(req.params.id);
   const input = redetectImportSchema.parse(req.body);
-  if (!config.NEW_API_KEY) throw new HttpError(503, 'SERVICE_NOT_CONFIGURED', '请先配置 New API，再开始识别');
+  if (!config.NEW_API_KEY) throw new HttpError(503, 'SERVICE_NOT_CONFIGURED', '图片处理暂不可用，请稍后再试');
   res.status(202).json({ data: await idempotent(res.locals.user.id, `/clothing-imports/${id}/redetect`, req.get('Idempotency-Key'), input, async client => {
     await client.query('SELECT id FROM users WHERE id=$1 FOR UPDATE', [res.locals.user.id]);
     await client.query('SELECT id FROM clothing_imports WHERE user_id=$1 AND id=$2 FOR UPDATE', [res.locals.user.id, id]);
     const current = await readImport(client, res.locals.user.id, id);
     if (current.mode !== 'set' || current.status === 'confirmed' || current.status === 'cancelled' || current.pending || current.itemCount) throw new HttpError(409, 'IMPORT_STATE_CONFLICT', '仅未生成单品且已结束处理的套装录入可重新识别');
     if (current.version !== input.version) versionConflict();
-    const unresolved = await client.query("SELECT id FROM image_jobs WHERE user_id=$1 AND input_asset_id=$2 AND processing_state->'detection'->>'delivery' IN ('submitting','unknown') LIMIT 1", [res.locals.user.id, current.inputAssetId]);
-    if (unresolved.rows.length) throw new HttpError(409, 'PROVIDER_PENDING', '请先在 New API 核对上次调用结果，避免重复计费');
+    const unresolved = await client.query(`SELECT id FROM image_jobs WHERE user_id=$1 AND input_asset_id=$2 AND ${unconfirmedProviderCall} LIMIT 1`, [res.locals.user.id, current.inputAssetId]);
+    if (unresolved.rows.length) throw new HttpError(409, 'PROVIDER_PENDING', '图片处理未完成，请返回重试');
     await client.query("INSERT INTO image_jobs(user_id,input_asset_id,kind,import_id,processing_state) VALUES($1,$2,'locate',$3,$4)", [res.locals.user.id, current.inputAssetId, id, JSON.stringify({ userPrompt: input.userPrompt || '' })]);
     await client.query("UPDATE clothing_imports SET status='processing',version=version+1 WHERE user_id=$1 AND id=$2", [res.locals.user.id, id]);
     return readImport(client, res.locals.user.id, id);
@@ -134,6 +134,7 @@ clothingImportsRouter.post('/:id/confirm', async (req, res) => {
 clothingImportsRouter.post('/:id/cancel', async (req, res) => {
   const id = idSchema.parse(req.params.id);
   res.status(202).json({ data: await transaction(async client => {
+    await client.query('SELECT id FROM users WHERE id=$1 FOR UPDATE', [res.locals.user.id]);
     const updated = await client.query("UPDATE clothing_imports SET status='cancelled',version=version+1 WHERE user_id=$1 AND id=$2 AND status<>'confirmed' RETURNING id", [res.locals.user.id, id]);
     if (!updated.rows.length) notFound();
     await client.query("UPDATE image_jobs SET cancel_requested=true,status=CASE WHEN status='queued' THEN 'cancelled' ELSE status END,phase=CASE WHEN status='queued' THEN '已取消' ELSE '正在取消' END,finished_at=CASE WHEN status='queued' THEN now() ELSE finished_at END WHERE user_id=$1 AND import_id=$2 AND status IN ('queued','running')", [res.locals.user.id, id]);

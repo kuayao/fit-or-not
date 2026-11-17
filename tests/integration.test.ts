@@ -831,6 +831,38 @@ test('小程序错误响应在动态编译不可用时正常结束请求与上�
     })();`, context);
 });
 
+test('衣橱筛选：未设置二级分类、组合条件、分页与归属隔离', async () => {
+  const token = randomBytes(32).toString('base64url');
+  const owner = (await pool.query<{ id: string }>('INSERT INTO users(wechat_openid) VALUES($1) RETURNING id', [randomUUID()])).rows[0].id;
+  await pool.query("INSERT INTO sessions(user_id,token_hash,expires_at) VALUES($1,$2,now()+interval '1 hour')", [owner, createHash('sha256').update(token).digest('hex')]);
+  const call = (method: string, path: string, body?: unknown) => request(method, path, body, token);
+  const root = await data(await call('POST', '/categories', { name: '上衣' }), categorySchema, 201);
+  const other = await data(await call('POST', '/categories', { name: '外套' }), categorySchema, 201);
+  const child = await data(await call('POST', '/categories', { name: '衬衫', parentId: root.id }), categorySchema, 201);
+  const asset = (await pool.query<{ id: string }>("INSERT INTO media_assets(user_id,kind,storage_key,mime_type,width,height,byte_size) VALUES($1,'original',$2,'image/png',1,1,1) RETURNING id", [owner, randomUUID()])).rows[0].id;
+  const clothes = await Promise.all([
+    { categoryId: root.id, status: 'active', favorite: true, colors: ['blue'] },
+    { categoryId: other.id, status: 'active' },
+    { categoryId: child.id, status: 'active' },
+    { categoryId: null, status: 'draft' },
+    { categoryId: root.id, status: 'archived' }
+  ].map(input => call('POST', '/clothes', { primaryAssetId: asset, ...input }).then(response => data(response, clothingSchema, 201))));
+  const filtered = await data(await call('GET', '/clothes?missingSubcategory=true&status=wardrobe'), z.array(clothingSchema));
+  assert.deepEqual(filtered.map(item => item.id).sort(), [clothes[0].id, clothes[1].id, clothes[3].id].sort());
+  const firstResponse = await call('GET', '/clothes?missingSubcategory=true&status=wardrobe&pageSize=2');
+  assert.equal(firstResponse.status, 200);
+  const first = z.object({ data: z.array(clothingSchema), pagination: z.object({ total: z.number() }) }).parse(await firstResponse.json());
+  const second = await data(await call('GET', '/clothes?missingSubcategory=true&status=wardrobe&pageSize=2&page=2'), z.array(clothingSchema));
+  assert.equal(first.pagination.total, 3);
+  assert.deepEqual([...first.data, ...second].map(item => item.id), filtered.map(item => item.id));
+  assert.deepEqual((await data(await call('GET', `/clothes?missingSubcategory=true&categoryId=${root.id}`), z.array(clothingSchema))).map(item => item.id), [clothes[0].id]);
+  assert.equal((await data(await call('GET', `/clothes?missingSubcategory=true&categoryId=${child.id}`), z.array(clothingSchema))).length, 0);
+  assert.deepEqual((await data(await call('GET', '/clothes?missingSubcategory=true&favorite=true&colors=blue'), z.array(clothingSchema))).map(item => item.id), [clothes[0].id]);
+  assert.deepEqual((await data(await call('GET', '/clothes?missingSubcategory=true&status=archived'), z.array(clothingSchema))).map(item => item.id), [clothes[4].id]);
+  assert.equal((await data(await call('GET', '/clothes?missingSubcategory=false&status=wardrobe'), z.array(clothingSchema))).length, 4);
+  assert.equal((await data(await call('GET', '/clothes?status=wardrobe'), z.array(clothingSchema))).length, 4);
+  assert.equal((await call('GET', '/clothes?missingSubcategory=invalid')).status, 400);
+});
 test('批量衣物：标签修改、删除、草稿、归属与整批回滚', async t => {
   const tokenB = randomBytes(32).toString('base64url');
   const foreignOwner = (await pool.query<{ id: string }>('INSERT INTO users(wechat_openid) VALUES($1) RETURNING id', [randomUUID()])).rows[0].id;
@@ -946,6 +978,83 @@ test('批量衣物：标签修改、删除、草稿、归属与整批回滚', as
   });
 });
 
+test('待核对删除：取消空录入、套装转单品、批量回滚和历史修正', async t => {
+  const tokenB = randomBytes(32).toString('base64url');
+  const foreignOwner = (await pool.query<{ id: string }>('INSERT INTO users(wechat_openid) VALUES($1) RETURNING id', [randomUUID()])).rows[0].id;
+  await pool.query("INSERT INTO sessions(user_id,token_hash,expires_at) VALUES($1,$2,now()+interval '1 hour')", [foreignOwner, createHash('sha256').update(tokenB).digest('hex')]);
+  t.after(async () => { await pool.query('DELETE FROM users WHERE id=$1', [foreignOwner]); });
+  const token = randomBytes(32).toString('base64url');
+  const owner = (await pool.query<{ id: string }>('INSERT INTO users(wechat_openid) VALUES($1) RETURNING id', [randomUUID()])).rows[0].id;
+  await pool.query("INSERT INTO sessions(user_id,token_hash,expires_at) VALUES($1,$2,now()+interval '1 hour')", [owner, createHash('sha256').update(token).digest('hex')]);
+  const call = (method: string, path: string, body?: object, session = token, key?: string) => request(method, path, body, session, key);
+  t.after(async () => {
+    await pool.query('DELETE FROM image_jobs WHERE user_id=$1', [owner]);
+    await pool.query('DELETE FROM clothes WHERE user_id=$1', [owner]);
+    await pool.query('DELETE FROM users WHERE id=$1', [owner]);
+  });
+
+  const { clothingImportDetailSchema, clothingImportSchema } = await import('../miniprogram/api/contracts.js');
+  const { refreshImportStatus } = await import('../server/src/clothing-imports.js');
+  const form = new FormData();
+  form.set('purpose', 'clothing');
+  form.set('file', new Blob([await sharp({ create: { width: 64, height: 64, channels: 3, background: '#999' } }).png().toBuffer()]), 'delete-review.png');
+  const asset = await data(await fetch(`${base}/media`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form }), mediaSchema, 201);
+  const category = await data(await call('POST', '/categories', { name: '删除核对分类' }), categorySchema, 201);
+  async function createRecord(count: number, mode = 'set') {
+    const id = (await pool.query<{ id: string }>("INSERT INTO clothing_imports(user_id,input_asset_id,mode,status,save_as_set) VALUES($1,$2,$3,'review',$4) RETURNING id", [owner, asset.assetId, mode, mode === 'set'])).rows[0].id;
+    for (let index = 0; index < count; index++) {
+      const clothing = await data(await call('POST', '/clothes', { name: `保留资料${index}`, categoryId: category.id, primaryAssetId: asset.assetId, status: 'draft' }), clothingSchema, 201);
+      await pool.query('INSERT INTO clothing_import_items(user_id,import_id,clothing_id,target_key) VALUES($1,$2,$3,$4)', [owner, id, clothing.id, String(index)]);
+    }
+    return data(await call('GET', `/clothing-imports/${id}`), clothingImportDetailSchema);
+  }
+  const single = await createRecord(1, 'single');
+  assert.equal((await call('DELETE', `/clothes/${single.items[0].clothing!.id}`, undefined, tokenB)).status, 404);
+  assert.equal((await call('DELETE', `/clothes/${single.items[0].clothing!.id}`)).status, 204);
+  await refreshImportStatus(single.id);
+  assert.equal((await data(await call('GET', `/clothing-imports/${single.id}`), clothingImportDetailSchema)).status, 'cancelled');
+  assert(!(await data(await call('GET', '/clothing-imports?empty=true'), z.array(clothingImportSchema))).some(record => record.id === single.id));
+
+  const set = await createRecord(2);
+  await pool.query("INSERT INTO image_jobs(user_id,input_asset_id,kind,import_id) VALUES($1,$2,'set-cover',$3)", [owner, asset.assetId, set.id]);
+  assert.equal((await call('DELETE', `/clothes/${set.items[0].clothing!.id}`)).status, 204);
+  const remaining = await data(await call('GET', `/clothing-imports/${set.id}`), clothingImportDetailSchema);
+  assert.equal(remaining.mode, 'single'); assert.equal(remaining.saveAsSet, false); assert.equal(remaining.itemCount, 1);
+  assert.equal(remaining.status, 'review'); assert.equal(remaining.pending, false); assert.equal(remaining.version, set.version + 1);
+  assert.equal(remaining.jobs[0].status, 'cancelled');
+  const survivor = remaining.items.find(item => item.clothing)!.clothing!;
+  assert.equal(survivor.singleImport, true); assert.equal(survivor.status, 'draft');
+  assert.equal(survivor.name, set.items[1].clothing!.name); assert.equal(survivor.primaryAssetId, asset.assetId);
+  const saved = await data(await call('PATCH', `/clothes/${survivor.id}`, { version: survivor.version, status: 'active' }), clothingSchema);
+  assert.equal(saved.importId, null); assert.equal(saved.setId, null); assert.equal(saved.status, 'active');
+
+  const batch = await createRecord(2);
+  const batchItems = batch.items.map(item => ({ id: item.clothing!.id, version: item.clothing!.version }));
+  assert.equal((await call('POST', '/clothes/batch', { action: 'delete', items: [batchItems[0], { ...batchItems[1], version: 999 }] })).status, 409);
+  assert.deepEqual(await data(await call('GET', `/clothing-imports/${batch.id}`), clothingImportDetailSchema), batch);
+  assert.equal((await call('POST', '/clothes/batch', { action: 'delete', items: batchItems })).status, 200);
+  assert.equal((await data(await call('GET', `/clothing-imports/${batch.id}`), clothingImportDetailSchema)).status, 'cancelled');
+
+  const empty = await createRecord(0);
+  const deleted = await createRecord(1, 'single');
+  const partial = await createRecord(2);
+  for (const record of [deleted, partial]) await pool.query('DELETE FROM clothes WHERE user_id=$1 AND id=$2', [owner, record.items[0].clothing!.id]);
+  const cover = (await pool.query<{ id: string }>("INSERT INTO image_jobs(user_id,input_asset_id,kind,import_id,status) VALUES($1,$2,'set-cover',$3,'running') RETURNING id", [owner, asset.assetId, deleted.id])).rows[0];
+  const migration = await readFile('server/migrations/V16__deleted_import_members.sql', 'utf8');
+  await pool.query(migration);
+  const fixed = await data(await call('GET', `/clothing-imports/${deleted.id}`), clothingImportDetailSchema);
+  assert.equal(fixed.status, 'cancelled');
+  assert.equal((await pool.query('SELECT cancel_requested FROM image_jobs WHERE id=$1', [cover.id])).rows[0].cancel_requested, true);
+  const converted = await data(await call('GET', `/clothing-imports/${partial.id}`), clothingImportDetailSchema);
+  assert.equal(converted.mode, 'single'); assert.equal(converted.saveAsSet, false); assert.equal(converted.items[1].clothing!.status, 'draft');
+  assert.deepEqual(await data(await call('GET', `/clothing-imports/${empty.id}`), clothingImportDetailSchema), empty);
+  await pool.query(migration);
+  assert.deepEqual(await data(await call('GET', `/clothing-imports/${deleted.id}`), clothingImportDetailSchema), fixed);
+  assert.deepEqual(await data(await call('GET', `/clothing-imports/${partial.id}`), clothingImportDetailSchema), converted);
+  assert.equal((await call('POST', `/media/signed-urls`, { assetIds: [asset.assetId] })).status, 200);
+  await pool.query("UPDATE image_jobs SET status='cancelled',finished_at=now() WHERE id=$1", [cover.id]);
+});
+
 test('套装定位未完成：零单品可见、补充描述重试、幂等与历史状态修正', async t => {
   const { clothingImportDetailSchema, clothingImportSchema } = await import('../miniprogram/api/contracts.js');
   const tokenB = randomBytes(32).toString('base64url');
@@ -1032,6 +1141,197 @@ test('套装定位未完成：零单品可见、补充描述重试、幂等与�
   await pool.query(migration);
   assert.deepEqual(await data(await request('GET', `/clothing-imports/${legacy.id}`, undefined, token), clothingImportDetailSchema), fixed);
   await migrate();
+});
+
+test('描述优化：关闭思考、仅文字、归属隔离、输出校验与超时', async t => {
+  const tokenB = randomBytes(32).toString('base64url');
+  const foreignOwner = (await pool.query<{ id: string }>('INSERT INTO users(wechat_openid) VALUES($1) RETURNING id', [randomUUID()])).rows[0].id;
+  await pool.query("INSERT INTO sessions(user_id,token_hash,expires_at) VALUES($1,$2,now()+interval '1 hour')", [foreignOwner, createHash('sha256').update(tokenB).digest('hex')]);
+  t.after(async () => { await pool.query('DELETE FROM users WHERE id=$1', [foreignOwner]); });
+  const token = randomBytes(32).toString('base64url');
+  const owner = (await pool.query<{ id: string }>('INSERT INTO users(wechat_openid) VALUES($1) RETURNING id', [randomUUID()])).rows[0].id;
+  await pool.query("INSERT INTO sessions(user_id,token_hash,expires_at) VALUES($1,$2,now()+interval '1 hour')", [owner, createHash('sha256').update(token).digest('hex')]);
+  const call = (method: string, path: string, body?: object, session = token, key?: string) => request(method, path, body, session, key);
+  t.after(async () => {
+    await pool.query('DELETE FROM image_jobs WHERE user_id=$1', [owner]);
+    await pool.query('DELETE FROM clothes WHERE user_id=$1', [owner]);
+    await pool.query('DELETE FROM users WHERE id=$1', [owner]);
+  });
+
+  const { promptRefinementSchema } = await import('../miniprogram/api/contracts.js');
+  const form = new FormData();
+  form.set('purpose', 'clothing');
+  form.set('file', new Blob([await sharp({ create: { width: 48, height: 48, channels: 3, background: '#dddddd' } }).png().toBuffer()]), 'refine.png');
+  const asset = await data(await fetch(`${base}/media`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form }), mediaSchema, 201);
+  const clothing = await data(await call('POST', '/clothes', { name: '原有裙子', primaryAssetId: asset.assetId, status: 'draft', itemType: '连衣裙', visibleFeatures: ['褶皱'] }), clothingSchema, 201);
+  const fixture = { calls: 0, mode: 'ready', inputs: Array<{ mode: string; userPrompt: string }>() };
+  const provider = express().use(express.json()).post('/chat/completions', (req, res) => {
+    const body = z.object({ model: z.literal(config.AI_RECOGNITION_MODEL), reasoning_effort: z.literal('none'), max_completion_tokens: z.literal(512), response_format: z.object({ type: z.literal('json_object') }), messages: z.array(z.object({ role: z.enum(['system', 'user']), content: z.string() })).length(2) }).strict().parse(req.body);
+    const input = z.object({ mode: z.enum(['repair', 'reidentify']), userPrompt: z.string(), clothing: z.object({ name: z.literal('原有裙子'), categoryName: z.string().nullable(), itemType: z.literal('连衣裙'), colorDescription: z.string().nullable(), visibleFeatures: z.array(z.string()) }).strict() }).strict().parse(JSON.parse(body.messages[1].content));
+    fixture.inputs.push(input); fixture.calls++;
+    if (fixture.mode === 'timeout') return;
+    if (fixture.mode === 'failure') { res.status(503).end(); return; }
+    if (fixture.mode === 'invalid') { res.json({ choices: [{ message: { content: JSON.stringify({ status: 'ready', text: '过'.repeat(301) }) } }] }); return; }
+    res.json({ choices: [{ message: { content: JSON.stringify(fixture.mode === 'needs-detail' ? { status: 'needs-detail', text: '请补充需要修补的部位。' } : { status: 'ready', text: input.mode === 'repair' ? '参考原图补齐遗漏的肩带，其他部位保持不变。' : '提取原图中的吊带连衣裙，保留原有颜色与版型。' }) } }] });
+  }).listen(0, '127.0.0.1');
+  await once(provider, 'listening');
+  const address = provider.address(); assert(address && typeof address !== 'string');
+  const previous = { url: config.NEW_API_BASE_URL, key: config.NEW_API_KEY };
+  config.NEW_API_BASE_URL = `http://127.0.0.1:${address.port}`; config.NEW_API_KEY = 'local-refinement-fixture';
+  t.after(async () => {
+    config.NEW_API_BASE_URL = previous.url; config.NEW_API_KEY = previous.key;
+    await new Promise<void>((resolve, reject) => provider.close(error => error ? reject(error) : resolve()));
+    await call('DELETE', `/clothes/${clothing.id}`);
+  });
+  const input = { clothingId: clothing.id, mode: 'reidentify', userPrompt: '  我想要这个裙子，它是吊带裙  ' };
+  for (const invalid of [{ ...input, userPrompt: ' ' }, { ...input, userPrompt: '过'.repeat(301) }, { ...input, mode: 'other' }, { ...input, clothing: {} }]) {
+    assert.equal((await call('POST', '/image-prompt-refinements', invalid)).status, 400);
+  }
+  assert.equal((await call('POST', '/image-prompt-refinements', input, tokenB)).status, 404);
+  assert.equal(fixture.calls, 0, '无效输入或他人衣物不调用模型');
+  const refined = await data(await call('POST', '/image-prompt-refinements', input), promptRefinementSchema);
+  assert.equal(refined.status, 'ready'); assert.equal(refined.text, '提取原图中的吊带连衣裙，保留原有颜色与版型。');
+  assert.equal(fixture.inputs[0].userPrompt, input.userPrompt.trim());
+  const repair = { ...input, mode: 'repair', userPrompt: '少了肩带' };
+  assert.equal((await data(await call('POST', '/image-prompt-refinements', repair), promptRefinementSchema)).text, '参考原图补齐遗漏的肩带，其他部位保持不变。');
+  fixture.mode = 'needs-detail';
+  assert.deepEqual(await data(await call('POST', '/image-prompt-refinements', { ...repair, userPrompt: '处理一下' }), promptRefinementSchema), { status: 'needs-detail', text: '请补充需要修补的部位。' });
+  for (const mode of ['failure', 'invalid', 'timeout']) {
+    fixture.mode = mode;
+    const response = await call('POST', '/image-prompt-refinements', input);
+    assert.equal(response.status, mode === 'timeout' ? 504 : 502);
+    assert.equal(z.object({ error: z.object({ code: z.string() }) }).parse(await response.json()).error.code, mode === 'timeout' ? 'PROMPT_REFINEMENT_TIMEOUT' : 'PROMPT_REFINEMENT_FAILED');
+  }
+  assert.equal(fixture.calls, 6, '每次点击只调用一次，不自动重试');
+  assert.deepEqual(await data(await call('GET', `/clothes/${clothing.id}`), clothingSchema), clothing, '优化不保存衣物或生成图片');
+  assert.equal((await pool.query('SELECT id FROM image_jobs WHERE clothing_id=$1', [clothing.id])).rows.length, 0);
+});
+
+test('调用恢复与单件补全：原图生成、旧遮罩复用、未知结果确认与成功阶段保留', async t => {
+  const tokenB = randomBytes(32).toString('base64url');
+  const foreignOwner = (await pool.query<{ id: string }>('INSERT INTO users(wechat_openid) VALUES($1) RETURNING id', [randomUUID()])).rows[0].id;
+  await pool.query("INSERT INTO sessions(user_id,token_hash,expires_at) VALUES($1,$2,now()+interval '1 hour')", [foreignOwner, createHash('sha256').update(tokenB).digest('hex')]);
+  t.after(async () => { await pool.query('DELETE FROM users WHERE id=$1', [foreignOwner]); });
+
+  const { clothingImportDetailSchema } = await import('../miniprogram/api/contracts.js');
+  const { createServer } = await import('node:net');
+  const token = randomBytes(32).toString('base64url');
+  const owner = (await pool.query<{ id: string }>('INSERT INTO users(wechat_openid) VALUES($1) RETURNING id', [randomUUID()])).rows[0].id;
+  await pool.query("INSERT INTO sessions(user_id,token_hash,expires_at) VALUES($1,$2,now()+interval '1 hour')", [owner, createHash('sha256').update(token).digest('hex')]);
+  const category = await data(await request('POST', '/categories', { name: '恢复测试上衣' }, token), categorySchema, 201);
+  const form = new FormData();
+  form.set('purpose', 'clothing');
+  const original = await sharp({ create: { width: 64, height: 64, channels: 3, background: '#345678' } }).png().toBuffer();
+  form.set('file', new Blob([original]), 'original.png');
+  const asset = await data(await fetch(`${base}/media`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form }), mediaSchema, 201);
+  const generated = await sharp(Buffer.from('<svg width="64" height="64"><rect x="12" y="8" width="40" height="48" fill="#a15b72"/></svg>')).png().toBuffer();
+  const suggestions = recognitionSchema.parse({ name: '保留已识别名称', rootCategoryId: category.id, categoryId: category.id, subcategoryName: null, itemType: '上衣', colorDescription: '蓝灰', pattern: 'solid', visibleFeatures: ['圆领'], colors: ['blue'], seasons: ['summer'], styleTagIds: [], occasionTagIds: [], inputIssues: [], cutoutReadiness: 'ready' });
+  const fixture = { drop: true, detectionDrop: true, timeout: false, recognition: 0, cutout: 0 };
+  const multer = (await import('multer')).default;
+  const provider = express().use(express.json({ limit: '2mb' })).post('/chat/completions', async (req, res) => {
+    const body = z.object({ messages: z.array(z.object({ content: z.unknown() })) }).parse(req.body);
+    if (z.string().parse(body.messages[0].content).includes('定位用户选择的套装照片')) {
+      if (fixture.detectionDrop) { req.socket.destroy(); return; }
+      res.json({ choices: [{ message: { content: JSON.stringify({ name: '恢复套装', targets: ['外套', '背心'].map((name, index) => ({ name, description: name, box: { left: 0.1 + index * 0.4, top: 0.1, width: 0.3, height: 0.8 }, visibility: 'visible' })) }) } }] });
+      return;
+    }
+    fixture.recognition++;
+    if (fixture.timeout) await new Promise(resolve => setTimeout(resolve, 100));
+    res.json({ choices: [{ message: { content: JSON.stringify(suggestions) } }] });
+  }).post('/images/edits', multer().single('image'), (req, res) => {
+    const body = z.object({ prompt: z.string(), background: z.literal('transparent') }).parse(req.body);
+    assert.deepEqual(req.file?.buffer, original);
+    fixture.cutout++;
+    if (fixture.drop) { req.socket.destroy(); return; }
+    assert(body.prompt.includes('不能留下横向透明断层'));
+    assert(body.prompt.includes('连衣裙不可拆成上衣与裙子'));
+    res.json({ data: [{ b64_json: generated.toString('base64') }] });
+  }).listen(0, '127.0.0.1');
+  await once(provider, 'listening');
+  const address = provider.address(); assert(address && typeof address !== 'string');
+  const previous = { url: config.NEW_API_BASE_URL, key: config.NEW_API_KEY, timeout: config.AI_RECOGNITION_TIMEOUT_MS };
+  config.NEW_API_BASE_URL = `http://127.0.0.1:${address.port}`; config.NEW_API_KEY = 'local-recovery-fixture';
+  t.after(async () => {
+    config.NEW_API_BASE_URL = previous.url; config.NEW_API_KEY = previous.key; config.AI_RECOGNITION_TIMEOUT_MS = previous.timeout;
+    await new Promise<void>((resolve, reject) => provider.close(error => error ? reject(error) : resolve()));
+    await pool.query('DELETE FROM image_jobs WHERE user_id=$1', [owner]);
+    await pool.query('DELETE FROM clothes WHERE user_id=$1', [owner]);
+    await pool.query('DELETE FROM users WHERE id=$1', [owner]);
+  });
+  const record = await data(await request('POST', '/clothing-imports', { inputAssetId: asset.assetId, mode: 'single' }, token, randomUUID()), clothingImportDetailSchema, 202);
+  await processNextImageJob();
+  const failed = await data(await request('GET', `/image-jobs/${record.jobs[0].id}`, undefined, token), jobSchema);
+  assert.equal(failed.result?.outcome, 'partial'); assert.equal(failed.providerPending, true); assert.equal(failed.result?.canRetry, false);
+  assert.equal((await request('POST', `/image-jobs/${failed.id}/retry`, {}, token, randomUUID())).status, 409);
+  assert.equal((await request('POST', `/image-jobs/${failed.id}/retry`, { confirmUncertain: true }, tokenB, randomUUID())).status, 404);
+  assert.equal((await request('POST', `/image-jobs/${failed.id}/retry`, { confirmUncertain: 'yes' }, token, randomUUID())).status, 400);
+  const key = randomUUID();
+  const responses = await Promise.all([request('POST', `/image-jobs/${failed.id}/retry`, { confirmUncertain: true }, token, key), request('POST', `/image-jobs/${failed.id}/retry`, { confirmUncertain: true }, token, key)]);
+  const retry = await data(responses[0], jobSchema, 202);
+  assert.deepEqual(await data(responses[1], jobSchema, 202), retry);
+  assert.equal(retry.providerPending, false); assert.equal(retry.result?.steps?.recognition.status, 'succeeded');
+  const audit = (await pool.query<{ processing_state: import('../server/src/ai-images.js').ImageProcessingState }>('SELECT processing_state FROM image_jobs WHERE id=$1', [failed.id])).rows[0].processing_state;
+  assert(audit.confirmedRetryAt); assert.equal(audit.cutout?.delivery, 'unknown'); assert(audit.cutout?.failure?.code);
+  assert.equal((await request('POST', `/image-jobs/${failed.id}/retry`, { confirmUncertain: true }, token, randomUUID())).status, 409);
+  await processNextImageJob();
+  const secondFailure = await data(await request('GET', `/image-jobs/${retry.id}`, undefined, token), jobSchema);
+  assert.equal(secondFailure.providerPending, true, '前次确认不能放开新一轮未知结果');
+  assert.equal((await request('POST', `/image-jobs/${retry.id}/retry`, {}, token, randomUUID())).status, 409);
+  fixture.drop = false;
+  const recovered = await data(await request('POST', `/image-jobs/${retry.id}/retry`, { confirmUncertain: true }, token, randomUUID()), jobSchema, 202);
+  await processNextImageJob();
+  const complete = await data(await request('GET', `/image-jobs/${recovered.id}`, undefined, token), jobSchema);
+  assert.equal(complete.result?.outcome, 'complete'); assert.equal(fixture.recognition, 1); assert.equal(fixture.cutout, 3);
+  assert.equal((await data(await request('GET', `/clothes/${record.items[0].clothing!.id}`, undefined, token), clothingSchema)).name, suggestions.name);
+  assert.equal((await pool.query<{ revision: string }>("SELECT processing_state->'cutout'->>'promptRevision' AS revision FROM image_jobs WHERE id=$1", [recovered.id])).rows[0].revision, 'completion-v2');
+  const generatedAsset = (await pool.query<{ storage_key: string }>('SELECT storage_key FROM media_assets WHERE id=$1', [complete.result?.cutoutAssetId])).rows[0];
+  const pixels = await sharp(join(testMedia, generatedAsset.storage_key)).ensureAlpha().raw().toBuffer();
+  assert.deepEqual([...pixels.subarray((512 * 1024 + 512) * 4, (512 * 1024 + 512) * 4 + 4)], [161, 91, 114, 255], '新流程保留生成图像素，不再从原图取色');
+  assert.equal(pixels[3], 0);
+  const maskId = randomUUID();
+  const mask = await sharp(Buffer.from('<svg width="1024" height="1024"><rect width="1024" height="1024" fill="black"/><rect x="200" y="150" width="450" height="600" fill="white"/></svg>')).png().toBuffer();
+  await writeFile(join(testMedia, `${maskId}.png`), mask);
+  await pool.query("INSERT INTO media_assets(id,user_id,kind,storage_key,mime_type,width,height,byte_size,parent_asset_id) VALUES($1,$2,'generated',$3,'image/png',1024,1024,$4,$5)", [maskId, owner, `${maskId}.png`, mask.length, asset.assetId]);
+  const legacy = await data(await request('POST', '/image-jobs', { inputAssetId: asset.assetId, clothingId: record.items[0].clothing!.id, kind: 'cutout' }, token, randomUUID()), jobSchema, 202);
+  await pool.query("UPDATE image_jobs SET status='failed',result=$2,processing_state=processing_state || $3::jsonb WHERE id=$1", [legacy.id, JSON.stringify({ steps: { recognition: { status: 'skipped', skipReason: 'not-requested' }, cutout: { status: 'failed', errorCode: 'IMAGE_PROCESSING_FAILED' } }, canRetry: true }), JSON.stringify({ rawAssetId: maskId, cutout: { model: config.AI_CUTOUT_MODEL, promptRevision: 'mask-v2', startedAt: new Date().toISOString(), delivery: 'completed' } })]);
+  const legacyRetry = await data(await request('POST', `/image-jobs/${legacy.id}/retry`, {}, token, randomUUID()), jobSchema, 202);
+  await processNextImageJob();
+  const legacyComplete = await data(await request('GET', `/image-jobs/${legacyRetry.id}`, undefined, token), jobSchema);
+  assert.equal(legacyComplete.result?.outcome, 'complete');
+  assert.equal(fixture.cutout, 3, '旧遮罩整理重试不重新调用模型');
+  const legacyAsset = (await pool.query<{ storage_key: string }>('SELECT storage_key FROM media_assets WHERE id=$1', [legacyComplete.result?.cutoutAssetId])).rows[0];
+  const legacyPixels = await sharp(join(testMedia, legacyAsset.storage_key)).ensureAlpha().raw().toBuffer();
+  assert.deepEqual([...legacyPixels.subarray((512 * 1024 + 512) * 4, (512 * 1024 + 512) * 4 + 4)], [52, 86, 120, 255], '旧遮罩仍与原图像素合成');
+  assert.equal(legacyPixels[3], 0);
+  const closed = createServer().listen(0, '127.0.0.1'); await once(closed, 'listening');
+  const closedAddress = closed.address(); assert(closedAddress && typeof closedAddress !== 'string');
+  await new Promise<void>((resolve, reject) => closed.close(error => error ? reject(error) : resolve()));
+  config.NEW_API_BASE_URL = `http://127.0.0.1:${closedAddress.port}`;
+  const input = { inputAssetId: asset.assetId, clothingId: record.items[0].clothing!.id, kind: 'classify' };
+  const connection = await data(await request('POST', '/image-jobs', input, token, randomUUID()), jobSchema, 202);
+  await processNextImageJob();
+  const refused = await data(await request('GET', `/image-jobs/${connection.id}`, undefined, token), jobSchema);
+  assert.equal(refused.providerPending, false); assert.equal(refused.result?.canRetry, true); assert.equal(refused.result?.steps?.recognition.errorCode, 'PROVIDER_CONNECTION_FAILED');
+  config.NEW_API_BASE_URL = `http://127.0.0.1:${address.port}`;
+  const directRetry = await data(await request('POST', `/image-jobs/${connection.id}/retry`, {}, token, randomUUID()), jobSchema, 202);
+  await processNextImageJob();
+  assert.equal((await data(await request('GET', `/image-jobs/${directRetry.id}`, undefined, token), jobSchema)).result?.outcome, 'complete');
+  fixture.timeout = true; config.AI_RECOGNITION_TIMEOUT_MS = 30;
+  const timeout = await data(await request('POST', '/image-jobs', input, token, randomUUID()), jobSchema, 202);
+  await processNextImageJob();
+  assert.equal((await data(await request('GET', `/image-jobs/${timeout.id}`, undefined, token), jobSchema)).providerPending, true);
+  fixture.timeout = false; config.AI_RECOGNITION_TIMEOUT_MS = previous.timeout;
+  const other = await data(await fetch(`${base}/media`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form }), mediaSchema, 201);
+  const set = await data(await request('POST', '/clothing-imports', { inputAssetId: other.assetId, mode: 'set' }, token, randomUUID()), clothingImportDetailSchema, 202);
+  await processNextImageJob();
+  const locate = await data(await request('GET', `/image-jobs/${set.jobs[0].id}`, undefined, token), jobSchema);
+  assert.equal(locate.providerPending, true);
+  assert.equal((await request('POST', `/image-jobs/${locate.id}/retry`, {}, token, randomUUID())).status, 409);
+  const locateRetry = await data(await request('POST', `/image-jobs/${locate.id}/retry`, { confirmUncertain: true }, token, randomUUID()), jobSchema, 202);
+  fixture.detectionDrop = false;
+  await processNextImageJob();
+  assert.equal((await data(await request('GET', `/image-jobs/${locateRetry.id}`, undefined, token), jobSchema)).status, 'succeeded');
+  assert.equal((await data(await request('GET', `/clothing-imports/${set.id}`, undefined, token), clothingImportDetailSchema)).itemCount, 2);
 });
 
 test('双图修补：底图与原图顺序、资料保留、归属、幂等及失败重试', async t => {
@@ -1142,7 +1442,6 @@ test('多件录入与套装：延迟启动、并行阶段、部分重试、确�
   assert.equal((await pool.query('SELECT id FROM clothes WHERE user_id=$1', [owner])).rows.length, 0);
   const target = (name: string, left: number) => ({ name, description: `${name}，仅可见衣料`, box: { left, top: 0.1, width: 0.4, height: 0.8 }, visibility: 'occluded' });
   const fixture = { active: 0, peak: 0, recognition: 0, cutout: 0, covers: 0, detection: 0, failHint: true, failHintImage: false, inputs: Array<{ userPrompt: string; hasTarget: boolean; imageCount: number }>(), prompts: Array<string>(), failInner: true, failCover: true, cancelImportId: '', replaceCoverImportId: '', replacementAssetId: '', cancelCoverImportId: '', targets: Array<string | undefined>() };
-  const mask = await sharp(Buffer.from('<svg width="1024" height="1024"><rect width="1024" height="1024" fill="black"/><rect x="200" y="150" width="450" height="600" fill="white"/></svg>')).png().toBuffer();
   const generated = await sharp(Buffer.from('<svg width="64" height="64"><rect x="12" y="8" width="40" height="48" fill="#a15b72"/></svg>')).png().toBuffer();
   const multer = (await import('multer')).default;
   const providerApp = express().use(express.json({ limit: '10mb' }));
@@ -1176,9 +1475,9 @@ test('多件录入与套装：延迟启动、并行阶段、部分重试、确�
     const body = z.object({ prompt: z.string(), background: z.string() }).parse(req.body);
     fixture.prompts.push(body.prompt);
     const isCover = body.prompt.includes('整套透明展示图');
-    const isMask = body.prompt.includes('分割遮罩');
-    assert(isMask || isCover || body.prompt.includes('合理补全指定单品'));
-    assert.equal(body.background, isMask ? 'opaque' : 'transparent');
+    assert(isCover || body.prompt.includes('合理补全指定单品'));
+    assert.equal(body.background, 'transparent');
+    assert.deepEqual(req.file?.buffer, source);
     if (isCover) {
       fixture.covers++;
       assert(body.prompt.includes('开衫') && body.prompt.includes('背心'));
@@ -1195,7 +1494,7 @@ test('多件录入与套装：延迟启动、并行阶段、部分重试、确�
     fixture.active++; fixture.cutout++; fixture.peak = Math.max(fixture.peak, fixture.active);
     await new Promise(resolve => setTimeout(resolve, 60)); fixture.active--;
     if (isCover && fixture.failCover || body.prompt.includes('userPrompt') && fixture.failHintImage) { res.status(503).json({ error: 'temporary' }); return; }
-    res.json({ data: [{ b64_json: (isMask ? mask : generated).toString('base64') }] });
+    res.json({ data: [{ b64_json: generated.toString('base64') }] });
   });
   const provider = providerApp.listen(0, '127.0.0.1');
   await once(provider, 'listening');
@@ -1392,7 +1691,7 @@ test('多件录入与套装：延迟启动、并行阶段、部分重试、确�
   await processNextImageJob();
   const singleHintResult = await data(await request('GET', `/image-jobs/${singleHint.id}`, undefined, token), jobSchema);
   assert.equal(singleHintResult.result?.outcome, 'complete');
-  assert(fixture.prompts.at(-1)!.includes('分割遮罩') && fixture.prompts.at(-1)!.includes(hint), '单件遮罩同样使用补充描述');
+  assert(fixture.prompts.at(-1)!.includes('合理补全指定单品') && fixture.prompts.at(-1)!.includes(hint), '单件补全同样使用补充描述');
   const singleReady = await data(await request('GET', `/clothes/${singleDraft.id}`, undefined, token), clothingSchema);
   assert.equal((await request('PATCH', `/clothes/${singleReady.id}`, { version: singleReady.version, categoryId: other.id, status: 'active' }, token)).status, 404);
   assert.equal((await data(await request('GET', `/clothing-imports/${singleEdit.id}`, undefined, token), clothingImportDetailSchema)).status, 'review');

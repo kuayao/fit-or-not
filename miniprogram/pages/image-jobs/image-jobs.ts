@@ -1,15 +1,18 @@
 import { refreshExpiredImage } from '../../utils/refresh-image';
-import { getClothingImport, listImageJobs, listClothingImports, imageUrls } from '../../api/client';
+import { getClothingImport, listImageJobs, listClothingImports, imageUrls, retryImageJob } from '../../api/client';
 import type { ClothingImport, ImageJob } from '../../api/contracts';
 import { idSchema } from '../../api/contracts';
-import { RequestScope, errorMessage, requireSession } from '../../utils/request';
+import { ApiError, RequestScope, errorMessage, requireSession } from '../../utils/request';
+import { prepareImageJobRetry } from '../../utils/image-job-retry';
+import type { ImageJobRetryAttempt } from '../../utils/image-job-retry';
 
 const STEP_LABELS = { queued: '等待中', running: '处理中', succeeded: '已完成', failed: '未完成', skipped: '已跳过' };
 
 Page({
   scope: new RequestScope(), timer: 0, visible: true, page: 0, opening: false,
-  data: { imports: Array<ClothingImport & { imageUrl: string; statusText: string }>(), importTotal: 0, jobs: Array<ImageJob & { imageUrl: string; resultUrl: string; statusText: string; pending: boolean; recognitionText: string; cutoutText: string }>(), loading: false, error: '', total: 0 },
-  onLoad() { this.scope = new RequestScope(); if (requireSession()) void this.load(true); },
+  retryAttempts: new Map<string, ImageJobRetryAttempt>(),
+  data: { imports: Array<ClothingImport & { imageUrl: string; statusText: string }>(), importTotal: 0, jobs: Array<ImageJob & { imageUrl: string; resultUrl: string; statusText: string; pending: boolean; recognitionText: string; cutoutText: string }>(), loading: false, busy: false, error: '', total: 0 },
+  onLoad() { this.scope = new RequestScope(); this.retryAttempts = new Map(); if (requireSession()) void this.load(true); },
   onShow() { this.visible = true; if (this.scope.hasShown && requireSession()) void this.load(true); this.scope.hasShown = true; },
   onHide() { this.visible = false; clearTimeout(this.timer); },
   onImageError(event: WechatMiniprogram.ImageError) {
@@ -29,6 +32,23 @@ Page({
   },
   onJob(event: WechatMiniprogram.TouchEvent) { const id = idSchema.parse(event.currentTarget.dataset.id); const job = this.data.jobs.find(item => item.id === id)!; if (job.clothingId) wx.navigateTo({ url: `/pages/clothing-edit/clothing-edit?id=${job.clothingId}` }); },
   onRetry() { void this.load(true); },
+  async onRetryJob(event: WechatMiniprogram.TouchEvent) {
+    if (this.data.busy) return;
+    const id = idSchema.parse(event.currentTarget.dataset.id);
+    this.setData({ busy: true, error: '' });
+    try {
+      const attempt = this.retryAttempts.get(id) || await prepareImageJobRetry(this.scope, id);
+      if (!attempt) { this.setData({ busy: false }); return; }
+      this.retryAttempts.set(id, attempt);
+      await retryImageJob(this.scope, id, attempt.key, attempt.confirmUncertain);
+      this.retryAttempts.delete(id);
+      this.setData({ busy: false });
+      await this.load(true);
+    } catch (error) {
+      if (error instanceof ApiError && !['NETWORK_ERROR', 'REQUEST_TIMEOUT', 'INVALID_RESPONSE'].includes(error.code)) this.retryAttempts.delete(id);
+      const message = errorMessage(error); if (message) this.setData({ busy: false, error: message });
+    }
+  },
   async load(reset: boolean) {
     if (this.data.loading) return;
     clearTimeout(this.timer);

@@ -23,7 +23,7 @@ Page({
     tags: Array<{ id: string; name: string; kind: 'occasion' | 'style' }>(), q: '', categoryId: '', color: '', season: '', occasionIds: '', tagId: '', favorite: false,
     searchOpen: false, sidebarCollapsed: false, taxonomyLoading: true, taxonomyError: '',
     draft: false, showArchived: false, archived: false, filtersOpen: false, filterFavorite: false, sort: 'created', sortLabels: ['最新录入', '最近穿着', '穿着次数', '购买价格'], sortIndex: 0,
-    filterSortIndex: 0, menuOpen: false, menuItems: Array<{ id: string; name: string }>(),
+    filterSortIndex: 0, missingSubcategory: false, filterMissingSubcategory: false, menuOpen: false, menuItems: Array<{ id: string; name: string }>(),
     filterColors: COLOR_OPTIONS.map(item => ({ ...item, selected: false })),
     filterSeasons: seasons.map((value, index) => ({ value, label: seasonLabels[index], selected: false })),
     filterOccasions: Array<{ id: string; name: string; selected: boolean }>(),
@@ -38,6 +38,7 @@ Page({
     this.scope = new RequestScope();
     if (!requireSession()) return;
     this.setData({ archived: options.status === 'archived' });
+    void this.load(true);
     void this.loadPreferences();
     void this.loadTaxonomy();
   },
@@ -45,7 +46,7 @@ Page({
     this.visible = true;
     this.setData({ setRefresh: this.data.setRefresh + 1 });
     this.getTabBar()?.setData({ selected: 1 });
-    if (this.scope.hasShown && requireSession()) { void this.loadPreferences(); void this.loadTaxonomy(); }
+    if (this.scope.hasShown && requireSession()) { void this.load(true); void this.loadPreferences(); void this.loadTaxonomy(); }
     this.scope.hasShown = true;
   },
   onHide() { this.visible = false; clearTimeout(this.timer); this.generation++; this.setData({ loading: false }); },
@@ -53,7 +54,7 @@ Page({
     void refreshExpiredImage(this.scope, event, (oldUrl, url) => { this.setData({ imports: this.data.imports.map(item => ({ ...item, imageUrl: item.imageUrl === oldUrl ? url : item.imageUrl })), clothes: this.data.clothes.map(item => ({ ...item, imageUrl: item.imageUrl === oldUrl ? url : item.imageUrl })) }); }, message => this.setData({ error: message }));
   },
   onUnload() { this.visible = false; clearTimeout(this.timer); this.generation++; this.scope.close(); },
-  onLoadMore() { if (!this.data.loading && (this.data.clothes.length < this.data.total || (this.data.draft && this.data.imports.length < this.data.importTotal))) void this.load(false); },
+  onLoadMore() { if (!this.data.loading && (this.data.clothes.length < this.data.total || this.data.imports.length < this.data.importTotal)) void this.load(false); },
   onSection(event: WechatMiniprogram.TouchEvent) { if (this.data.busy) return; this.setData({ managing: false, selectedIds: [], batchOpen: false, section: z.enum(['items', 'sets']).parse(event.currentTarget.dataset.section) }); },
   onToggleSearch() { this.setData({ searchOpen: !this.data.searchOpen }); },
   onToggleSidebar() { this.setData({ sidebarCollapsed: !this.data.sidebarCollapsed }); },
@@ -69,19 +70,19 @@ Page({
   onReviewCategory() { if (!this.data.draft) this.onDrafts(); },
   onSubCategory(event: WechatMiniprogram.TouchEvent) {
     const id = idSchema.parse(event.currentTarget.dataset.id);
-    this.setData({ categoryId: id });
+    this.setData({ categoryId: id, missingSubcategory: id === this.data.rootCategoryId && this.data.missingSubcategory });
     void this.load(true);
   },
   onTaxonomy() { wx.navigateTo({ url: `/pages/taxonomy/taxonomy${this.data.rootCategoryId ? `?parentId=${this.data.rootCategoryId}` : ''}` }); },
   onFavorite() { this.setData({ favorite: !this.data.favorite }); void this.load(true); },
   onDrafts() {
-    this.setData({ draft: !this.data.draft, archived: false, managing: false, selectedIds: [], categoryId: '', rootCategoryId: '', subCategories: [], favorite: false, q: '', color: '', season: '', occasionIds: '', tagId: '' });
+    this.setData({ draft: !this.data.draft, archived: false, managing: false, selectedIds: [], categoryId: '', rootCategoryId: '', subCategories: [], favorite: false, missingSubcategory: false, q: '', color: '', season: '', occasionIds: '', tagId: '' });
     void this.load(true);
   },
   onArchived() { this.setData({ draft: false, archived: !this.data.archived, managing: false, selectedIds: [] }); void this.load(true); },
   onFilters() {
     this.setData({
-      filtersOpen: true, filterFavorite: this.data.favorite, filterSortIndex: this.data.sortIndex,
+      filtersOpen: true, filterFavorite: this.data.favorite, filterMissingSubcategory: this.data.missingSubcategory, filterSortIndex: this.data.sortIndex,
       filterColors: this.data.filterColors.map(item => ({ ...item, selected: this.data.color.split(',').includes(item.value) })),
       filterSeasons: this.data.filterSeasons.map(item => ({ ...item, selected: this.data.season.split(',').includes(item.value) })),
       filterOccasions: this.data.tags.filter(item => item.kind === 'occasion').map(item => ({ id: item.id, name: item.name, selected: this.data.occasionIds.split(',').includes(item.id) }))
@@ -89,9 +90,12 @@ Page({
   },
   onCloseFilters() { this.setData({ filtersOpen: false }); },
   onFilterFavorite() { this.setData({ filterFavorite: !this.data.filterFavorite }); },
+  onFilterMissingSubcategory() { this.setData({ filterMissingSubcategory: !this.data.filterMissingSubcategory }); },
   onApplyFilters() {
     this.setData({
       favorite: this.data.filterFavorite, filtersOpen: false, sortIndex: this.data.filterSortIndex,
+      missingSubcategory: this.data.filterMissingSubcategory,
+      categoryId: this.data.filterMissingSubcategory ? this.data.rootCategoryId : this.data.categoryId,
       sort: ['created', 'last-worn', 'wear-count', 'price'][this.data.filterSortIndex],
       color: this.data.filterColors.filter(item => item.selected).map(item => item.value).join(','),
       season: this.data.filterSeasons.filter(item => item.selected).map(item => item.value).join(','),
@@ -102,7 +106,7 @@ Page({
   onClearFilters() {
     this.setData({
       searchOpen: false, q: '', categoryId: '', rootCategoryId: '', subCategories: [], color: '', season: '', occasionIds: '', tagId: '', favorite: false,
-      filterFavorite: false, filtersOpen: false, sort: 'created', sortIndex: 0, filterSortIndex: 0,
+      filterFavorite: false, missingSubcategory: false, filterMissingSubcategory: false, filtersOpen: false, sort: 'created', sortIndex: 0, filterSortIndex: 0,
       filterColors: this.data.filterColors.map(item => ({ ...item, selected: false })),
       filterSeasons: this.data.filterSeasons.map(item => ({ ...item, selected: false })),
       filterOccasions: this.data.filterOccasions.map(item => ({ ...item, selected: false }))
@@ -284,8 +288,12 @@ Page({
     }
   },
   async loadPreferences() {
-    try { const user = await getMe(this.scope); if (!this.visible) return; this.setData({ showArchived: user.data.preferences.showArchived || false }); await this.load(true); }
-    catch (error) { const message = errorMessage(error); if (message) this.setData({ error: message, loading: false }); }
+    try {
+      const user = await getMe(this.scope);
+      if (!this.visible || this.data.showArchived === Boolean(user.data.preferences.showArchived)) return;
+      this.setData({ showArchived: Boolean(user.data.preferences.showArchived) });
+      await this.load(true);
+    } catch (error) { const message = errorMessage(error); if (message) this.setData({ error: message }); }
   },
   async loadTaxonomy() {
     this.setData({ taxonomyLoading: true, taxonomyError: '' });
@@ -308,7 +316,10 @@ Page({
     const pages = refresh ? Array.from({ length: Math.max(1, this.page) }, (_, index) => index + 1) : [reset ? 1 : this.page + 1];
     this.setData({ loading: !refresh, error: '' });
     try {
-      const [results, importResults] = await Promise.all([Promise.all(pages.map(page => listClothes(this.scope, { q: this.data.q, categoryId: this.data.categoryId, favorite: this.data.favorite ? true : undefined, status: this.data.draft ? 'draft' : this.data.archived ? 'archived' : this.data.showArchived ? 'all' : 'wardrobe', colors: this.data.color, seasons: this.data.season, occasionIds: this.data.occasionIds, tagIds: this.data.tagId, sort: this.data.sort, page }))), this.data.draft ? Promise.all(pages.map(page => listClothingImports(this.scope, page, true))) : Promise.resolve([])]);
+      const importResults = this.data.draft || (!this.data.archived && !this.data.q && !this.data.categoryId && !this.data.favorite && !this.data.missingSubcategory && !this.data.color && !this.data.season && !this.data.occasionIds && !this.data.tagId)
+        ? await Promise.all(pages.map(page => listClothingImports(this.scope, page, true))) : [];
+      if (generation !== this.generation) return;
+      const results = await Promise.all(pages.map(page => listClothes(this.scope, { q: this.data.q, categoryId: this.data.categoryId, missingSubcategory: this.data.missingSubcategory ? true : undefined, favorite: this.data.favorite ? true : undefined, status: this.data.draft ? 'draft' : this.data.archived ? 'archived' : this.data.showArchived ? 'all' : 'wardrobe', colors: this.data.color, seasons: this.data.season, occasionIds: this.data.occasionIds, tagIds: this.data.tagId, sort: this.data.sort, page })));
       if (generation !== this.generation) return;
       const clothes = results.flatMap(result => result.data);
       const imports = importResults.flatMap(result => result.data);
@@ -326,7 +337,7 @@ Page({
           reviewText: item.processingStatus === 'failed' || item.processingStatus === 'cancelled' ? '处理未完成 · 点击核对' : item.status === 'draft' ? '待核对' : ''
         };
       })];
-      const nextImports = [...(reset ? [] : this.data.imports), ...imports.map(item => ({ ...item, imageUrl: existingUrls.get(item.inputAssetId) || urls[item.inputAssetId] }))];
+      const nextImports = [...(reset ? [] : this.data.imports), ...imports.map(item => ({ ...item, imageUrl: existingUrls.get(item.inputAssetId) || urls[item.inputAssetId] }))].filter(item => !nextClothes.some(clothing => clothing.importId === item.id));
       this.setData({ imports: nextImports, importTotal: importResults[0]?.pagination.total || 0, clothes: nextClothes, selectedIds: nextClothes.filter(item => item.selected).map(item => item.id), total: results[0].pagination.total, loading: false, loaded: true });
       if (nextClothes.some(item => item.processing) || nextImports.some(item => item.pending)) this.timer = setTimeout(() => { void this.load(true, true); }, 3000);
     } catch (error) {

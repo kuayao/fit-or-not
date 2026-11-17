@@ -1,6 +1,6 @@
 {
   "name": "fit-or-not",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": true,
   "type": "module",
   "packageManager": "npm@11.19.1",

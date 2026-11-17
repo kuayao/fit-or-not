@@ -1,5 +1,5 @@
 <view class="set-page {{edit ? 'set-page--editing' : ''}}">
-  <view wx:if="{{loading}}" class="state">正在加载…</view>
+  <app-loading wx:if="{{loading}}" variant="{{record ? 'inline' : 'detail'}}" text="正在加载" />
   <view wx:if="{{error}}" class="error" bindtap="onRetry">{{error}} · 点击重试</view>
   <view wx:if="{{record || (!loading && !error)}}" class="set-sheet">
     <view class="set-summary">
@@ -47,7 +47,7 @@
 <app-sheet visible="{{picking}}" title="选择单品" size="large" bind:close="onCloseClothes">
   <view class="set-picker">
     <view class="search set-search"><image class="set-search__icon" src="/assets/icons/search.svg" mode="aspectFit" /><input class="input grow" value="{{q}}" maxlength="100" bindinput="onSearchInput" bindconfirm="onSearch" placeholder="在当前分类中搜索" confirm-type="search" /></view>
-    <view wx:if="{{taxonomyLoading}}" class="set-picker__status">正在加载分类…</view>
+    <app-loading wx:if="{{taxonomyLoading}}" text="正在加载分类" />
     <view wx:elif="{{taxonomyError}}" class="error" bindtap="onRetryCategories">{{taxonomyError}} · 点击重试</view>
     <scroll-view wx:else class="set-categories" scroll-x show-scrollbar="{{false}}" aria-label="一级分类">
       <view class="set-categories__row"><button class="set-category {{!rootCategoryId ? 'set-category--selected' : ''}}" data-id="" bindtap="onRootCategory" aria-pressed="{{!rootCategoryId}}">全部</button><button wx:for="{{rootCategories}}" wx:key="id" class="set-category {{rootCategoryId === item.id ? 'set-category--selected' : ''}}" data-id="{{item.id}}" bindtap="onRootCategory" aria-pressed="{{rootCategoryId === item.id}}">{{item.name}}</button></view>
@@ -63,7 +63,7 @@
           <view class="set-member__name">{{item.name}}</view><view class="set-member__category">{{item.categoryName}}</view><view class="set-choice__status">{{item.selected ? '已选择' : item.setId ? '已属于套装' : ''}}</view>
         </view>
       </view>
-      <view wx:if="{{clothesLoading && clothes.length}}" class="state">正在加载…</view>
+      <app-loading wx:if="{{clothesLoading && clothes.length}}" text="正在加载" />
       <view wx:if="{{clothesError}}" class="set-picker__retry"><view class="error">{{clothesError}}</view><t-button t-class="set-small-button" class="button-block" block size="small" bind:tap="onRetryClothes">重新加载</t-button></view>
       <view wx:if="{{!clothesLoading && !clothesError && !clothes.length}}" class="state">当前分类下没有符合条件的衣物</view>
     </scroll-view>
@@ -78,7 +78,7 @@
         <image class="set-set-card__cover" src="{{item.imageUrl || item.previews[0].url}}" data-url="{{item.imageUrl || item.previews[0].url}}" binderror="onImageError" mode="aspectFit" />
         <view class="set-set-card__body"><view class="set-set-card__heading"><view class="set-member__name">{{item.name}}</view><image class="set-action-icon" src="/assets/icons/chevron.svg" mode="aspectFit" /></view><view class="set-label">{{item.memberCount}} 件单品</view><view class="set-set-card__previews"><image wx:for="{{item.previews}}" wx:for-item="preview" wx:key="id" class="set-set-card__preview" src="{{preview.url}}" data-url="{{preview.url}}" binderror="onImageError" mode="aspectFit" /></view></view>
       </view></view>
-      <view wx:if="{{choicesLoading && choices.length}}" class="state">正在加载套装…</view>
+      <app-loading wx:if="{{choicesLoading && choices.length}}" text="正在加载套装" />
       <view wx:if="{{choicesError}}" class="set-picker__retry"><view class="error">{{choicesError}}</view><t-button t-class="set-small-button" class="button-block" block size="small" bind:tap="onRetryChoices">重新加载</t-button></view>
       <view wx:if="{{!choicesLoading && !choicesError && !choices.length}}" class="state">还没有可加入的套装</view>
     </scroll-view>

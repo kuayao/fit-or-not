@@ -1,0 +1,22 @@
+.clothing-visual--processing, .upload-card.clothing-visual--processing { box-sizing: border-box; border: 3rpx solid transparent; background: linear-gradient(var(--photo), var(--photo)) padding-box, var(--ai-action-gradient) border-box; background-size: 100% 100%, 300% 100%; animation: clothing-processing-flow 4s ease-in-out infinite; }
+.clothing-processing { position: absolute; inset: 0; overflow: hidden; border-radius: var(--radius); }
+.clothing-processing__scan { position: absolute; top: -42%; left: 0; width: 100%; height: 40%; background: var(--ai-processing-sheen); animation: clothing-processing-scan 3.2s ease-in-out infinite; }
+.clothing-processing__scan::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2rpx; background: var(--ai-action-gradient); box-shadow: 0 0 16rpx var(--ai-action-glow); }
+.clothing-processing__content { position: relative; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12rpx; width: 100%; height: 100%; padding: 20rpx 12rpx; background: var(--ai-processing-veil); text-align: center; }
+.clothing-processing__stars { position: relative; width: 100rpx; height: 78rpx; margin-bottom: 6rpx; }
+.clothing-processing__star { position: absolute; top: 10rpx; left: 22rpx; width: 56rpx; height: 56rpx; filter: drop-shadow(0 0 10rpx var(--ai-action-glow)); animation: clothing-processing-star 2.4s ease-in-out infinite; }
+.clothing-processing__satellite { position: absolute; width: 22rpx; height: 22rpx; animation: clothing-processing-twinkle 2s ease-in-out infinite; }
+.clothing-processing__satellite--left { bottom: 0; left: 0; animation-delay: -.7s; }
+.clothing-processing__satellite--right { top: 0; right: 0; width: 26rpx; height: 26rpx; animation-delay: -1.4s; }
+.clothing-processing__title { color: var(--primary); font-size: 25rpx; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; text-shadow: 0 1px 6rpx var(--bg), 0 0 16rpx var(--bg); }
+.clothing-processing__activity { width: 84rpx; height: 4rpx; margin-top: 12rpx; border-radius: var(--ai-action-radius); overflow: hidden; background: var(--ai-action-glow); }
+.clothing-processing__light { width: 100%; height: 100%; background: var(--ai-action-gradient); background-size: 300% 100%; animation: clothing-processing-light 1.6s ease-in-out infinite; }
+@keyframes clothing-processing-flow { 0%, 100% { background-position: 0 0, 0% 50%; } 50% { background-position: 0 0, 100% 50%; } }
+@keyframes clothing-processing-scan { 0% { transform: translateY(0); opacity: 0; } 15%, 75% { opacity: 1; } 100% { transform: translateY(360%); opacity: 0; } }
+@keyframes clothing-processing-star { 0%, 100% { transform: translateY(0) rotate(-8deg) scale(.94); } 50% { transform: translateY(-6rpx) rotate(8deg) scale(1.12); } }
+@keyframes clothing-processing-twinkle { 0%, 100% { opacity: .2; transform: translateY(4rpx) scale(.6); } 50% { opacity: 1; transform: translateY(-4rpx) scale(1); } }
+@keyframes clothing-processing-light { 0%, 100% { background-position: 0% 50%; opacity: .55; } 50% { background-position: 100% 50%; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .clothing-visual--processing, .upload-card.clothing-visual--processing, .clothing-processing__scan, .clothing-processing__star, .clothing-processing__satellite, .clothing-processing__light { animation: none; }
+  .clothing-processing__scan { display: none; }
+}

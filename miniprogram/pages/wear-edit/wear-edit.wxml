@@ -39,16 +39,16 @@
         <view class="sheet-photo-option__check"><image wx:if="{{draftOutfitId === item.id}}" class="sheet-option__check-image" src="/assets/icons/check.svg" mode="aspectFit" /></view>
       </view>
     </view>
-    <view wx:if="{{loadingOutfits}}" class="state">正在加载搭配…</view>
+    <app-loading wx:if="{{loadingOutfits}}" text="正在加载搭配" />
     <view wx:elif="{{!outfits.length && !outfitsError}}" class="state">还没有保存的搭配<view class="text-button text-button--center" data-tab="clothes" bindtap="onChooseTab">选择衣物</view></view>
     <t-button t-class="ui-button" wx:if="{{outfits.length < outfitsTotal && !outfitsError}}" size="small" loading="{{loadingOutfits}}" disabled="{{loadingOutfits || busy}}" bind:tap="onMoreOutfits">更多搭配</t-button>
   </block>
   <block wx:if="{{chooseTab === 'clothes'}}">
-    <view wx:if="{{loadingCategories}}" class="form-hint">正在加载分类…</view>
+    <app-loading wx:if="{{loadingCategories}}" text="正在加载分类" />
     <view wx:if="{{categoriesError}}" class="error" bindtap="onRetryCategories">{{categoriesError}} · 点击重试分类</view>
     <view wx:if="{{clothesLoaded}}" class="wear-picker-count">共 {{clothesTotal}} 件</view>
     <view class="wear-grid"><block wx:for="{{clothes}}" wx:key="id"><view wx:if="{{item.visible}}" class="sheet-photo-option {{item.draftSelected ? 'sheet-photo-option--selected' : ''}}" aria-role="button" aria-pressed="{{item.draftSelected}}" data-id="{{item.id}}" bindtap="onClothing"><image class="card-image" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" /><view class="card-meta">{{item.name}}</view><view class="sheet-photo-option__check"><image wx:if="{{item.draftSelected}}" class="sheet-option__check-image" src="/assets/icons/check.svg" mode="aspectFit" /></view></view></block></view>
-    <view wx:if="{{loadingClothes}}" class="state">正在加载衣物…</view>
+    <app-loading wx:if="{{loadingClothes}}" text="正在加载衣物" />
     <view wx:elif="{{clothesError}}" class="error" bindtap="onMoreClothes">{{clothesError}} · 点击重试</view>
     <view wx:elif="{{clothesLoaded && !clothesCount}}" class="state">{{q ? '没有找到相关衣物' : categoryId ? '这个分类还没有衣物' : '先往衣橱添加一些衣物吧'}}</view>
     <t-button t-class="ui-button wear-picker-more" wx:if="{{clothesCount < clothesTotal && !clothesError}}" size="small" loading="{{loadingClothes}}" disabled="{{loadingClothes || busy}}" bind:tap="onMoreClothes">更多衣物</t-button>

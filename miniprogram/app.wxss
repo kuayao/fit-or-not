@@ -102,8 +102,10 @@ button.heart-button { position: absolute; right: 13rpx; top: 13rpx; width: 58rpx
 .menu-row .subtitle { font-size: 21rpx; margin-top: 11rpx; }
 .eyebrow { font-size: 19rpx; letter-spacing: 4rpx; color: var(--muted); }
 .skeleton-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 27rpx; }
-.skeleton { height: 366rpx; border-radius: 31rpx; background: #F1F4F7; }
-.skeleton-line { height: 23rpx; background: #F1F4F7; border-radius: 10rpx; margin: 23rpx 0; width: 75%; }
+.skeleton { height: 366rpx; border-radius: 31rpx; background: var(--loading-base); animation: skeleton-breathe 1.8s ease-in-out infinite; }
+.skeleton-line { height: 23rpx; background: var(--loading-base); border-radius: var(--loading-radius); margin: 23rpx 0; width: 75%; animation: skeleton-breathe 1.8s ease-in-out infinite; }
+@keyframes skeleton-breathe { 0%, 100% { background: var(--loading-base); } 50% { background: var(--loading-highlight); } }
+@media (prefers-reduced-motion: reduce) { .skeleton, .skeleton-line { animation: none; } }
 
 .button-block { display: block; width: 100%; min-width: 0; }
 .page-top > .icon-button { margin-left: auto; margin-right: 0; }

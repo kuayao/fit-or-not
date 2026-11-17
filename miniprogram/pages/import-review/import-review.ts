@@ -3,17 +3,20 @@ import { z } from 'zod';
 import { idSchema, redetectImportSchema } from '../../api/contracts';
 import type { ClothingImportDetail } from '../../api/contracts';
 import { addImportItem, cancelClothingImport, confirmClothingImport, getClothingImport, imageUrls, redetectClothingImport, retryImageJob, updateClothingImport, uploadPhoto } from '../../api/client';
-import { RequestScope, errorMessage, requireSession, requestKey } from '../../utils/request';
+import { ApiError, RequestScope, errorMessage, requireSession, requestKey } from '../../utils/request';
+import { prepareImageJobRetry } from '../../utils/image-job-retry';
+import type { ImageJobRetryAttempt } from '../../utils/image-job-retry';
 
 Page({
   scope: new RequestScope(), id: '', timer: 0, visible: true, dirty: false, coverDirty: false,
   confirmAttempt: null as { key: string; input: { version: number; items: { id: string; version: number }[] } } | null,
   redetectAttempt: null as { key: string; input: { version: number; userPrompt?: string } } | null,
   addAttempt: null as { key: string; input: { inputAssetId: string; version: number } } | null,
+  retryAttempts: new Map<string, ImageJobRetryAttempt>(),
   data: { record: null as ClothingImportDetail | null, sourceUrl: '', coverUrl: '', coverAssetId: '', name: '', saveAsSet: false, count: 0,
-    items: Array<ClothingImportDetail['items'][number] & { imageUrl: string; pending: boolean; message: string; retryId: string }>(),
-    loading: false, busy: false, error: '', confirmLocked: false, addPending: false, coverMessage: '', coverRetryId: '', locateMessage: '', redetectOpen: false, userPrompt: '', redetectLocked: false },
-  onLoad(options) { this.scope = new RequestScope(); if (!requireSession()) return; this.id = idSchema.parse(options.id); void this.load(); },
+    items: Array<ClothingImportDetail['items'][number] & { imageUrl: string; pending: boolean; message: string; retryId: string; providerPending: boolean; categorySuggestion: string }>(),
+    loading: false, busy: false, error: '', confirmLocked: false, addPending: false, coverMessage: '', coverRetryId: '', coverProviderPending: false, locateRetryId: '', locateMessage: '', redetectOpen: false, userPrompt: '', redetectLocked: false },
+  onLoad(options) { this.scope = new RequestScope(); this.retryAttempts = new Map(); if (!requireSession()) return; this.id = idSchema.parse(options.id); void this.load(); },
   onShow() { this.visible = true; if (this.scope.hasShown && requireSession()) void this.load(); this.scope.hasShown = true; },
   onHide() { this.visible = false; clearTimeout(this.timer); },
   onUnload() { this.visible = false; clearTimeout(this.timer); this.scope.close(); },
@@ -75,12 +78,20 @@ Page({
   },
   async onRetryJob(event: WechatMiniprogram.TouchEvent) {
     if (this.data.busy || this.confirmAttempt) return;
+    const id = idSchema.parse(event.currentTarget.dataset.id);
     this.setData({ busy: true, error: '' });
     try {
-      await retryImageJob(this.scope, idSchema.parse(event.currentTarget.dataset.id), requestKey());
+      const attempt = this.retryAttempts.get(id) || await prepareImageJobRetry(this.scope, id);
+      if (!attempt) { this.setData({ busy: false }); return; }
+      this.retryAttempts.set(id, attempt);
+      await retryImageJob(this.scope, id, attempt.key, attempt.confirmUncertain);
+      this.retryAttempts.delete(id);
       this.setData({ busy: false });
       await this.load();
-    } catch (error) { const message = errorMessage(error); if (message) this.setData({ busy: false, error: message }); }
+    } catch (error) {
+      if (error instanceof ApiError && !['NETWORK_ERROR', 'REQUEST_TIMEOUT', 'INVALID_RESPONSE'].includes(error.code)) this.retryAttempts.delete(id);
+      const message = errorMessage(error); if (message) this.setData({ busy: false, error: message });
+    }
   },
   onRedetect() {
     if (this.data.busy || !this.data.record || this.data.record.pending) return;
@@ -107,7 +118,7 @@ Page({
   },
   async onCancel() {
     if (this.data.busy || this.confirmAttempt) return;
-    const answer = await wx.showModal({ title: '取消这次录入？', content: '本次生成的单品草稿将一并删除。已发出的模型请求仍可能计费。', confirmText: '取消录入' });
+    const answer = await wx.showModal({ title: '取消这次录入？', content: '本次生成的单品草稿将一并删除。', confirmText: '取消录入' });
     if (!answer.confirm || !this.scope.active) return;
     this.setData({ busy: true, error: '' });
     try { await cancelClothingImport(this.scope, this.id); wx.reLaunch({ url: '/pages/wardrobe/wardrobe' }); }
@@ -115,6 +126,13 @@ Page({
   },
   async onConfirm() {
     if (this.data.busy || this.addAttempt || !this.data.record || this.data.record.pending || !this.data.count) return;
+    const needsReview = this.data.items.filter(item => item.included && item.categorySuggestion);
+    if (!this.confirmAttempt && needsReview.length) {
+      this.setData({ error: `请先确认${needsReview.map(item => `「${item.clothing!.name}」`).join('、')}的分类` }, () => {
+        wx.pageScrollTo({ selector: `#review-item-${needsReview[0].id}`, duration: 300 });
+      });
+      return;
+    }
     if (this.data.saveAsSet && (this.data.count < 2 || !this.data.name.trim())) { this.setData({ error: '请填写套装名称，并至少选择两件单品' }); return; }
     this.setData({ busy: true, error: '' });
     try {
@@ -144,8 +162,9 @@ Page({
     this.setData({ loading: true, error: '' });
     try {
       const record = (await getClothingImport(this.scope, this.id)).data;
-      if (record.status === 'confirmed') { wx.reLaunch({ url: '/pages/wardrobe/wardrobe' }); return; }
-      if (record.mode === 'single' && !record.saveAsSet && record.items.length === 1 && record.items[0].clothing) { wx.redirectTo({ url: `/pages/clothing-edit/clothing-edit?id=${record.items[0].clothing.id}` }); return; }
+      if (record.status === 'confirmed' || record.status === 'cancelled') { wx.reLaunch({ url: '/pages/wardrobe/wardrobe' }); return; }
+      const single = record.items.find(item => item.clothing)?.clothing;
+      if (record.mode === 'single' && !record.saveAsSet && record.itemCount === 1 && single) { wx.redirectTo({ url: `/pages/clothing-edit/clothing-edit?id=${single.id}` }); return; }
       const [urls, thumbnails] = await Promise.all([
         imageUrls(this.scope, [record.inputAssetId, ...(record.coverAssetId ? [record.coverAssetId] : [])]),
         imageUrls(this.scope, record.items.flatMap(item => item.clothing ? [item.clothing.primaryAssetId] : []), 'thumbnail')
@@ -153,16 +172,20 @@ Page({
       if (!this.visible) { this.setData({ loading: false }); return; }
       const items = record.items.map(item => {
         const job = [...record.jobs].reverse().find(job => job.importItemId === item.id);
+        const reviewResult = record.jobs.find(job => job.id === item.clothing?.processingJobId)?.result;
         return { ...item, included: this.dirty ? this.data.items.find(old => old.id === item.id)?.included ?? item.included : item.included,
+          categorySuggestion: reviewResult?.suggestions?.subcategoryName && !reviewResult.subcategoryReviewed && reviewResult.suggestions.categoryId === reviewResult.suggestions.rootCategoryId ? reviewResult.suggestions.subcategoryName : '',
           imageUrl: item.clothing ? thumbnails[item.clothing.primaryAssetId] : '', pending: job?.status === 'queued' || job?.status === 'running',
-          message: job?.result?.steps ? Object.values(job.result.steps).filter(step => step.status === 'failed' || step.skipReason === 'retake').map(step => step.message).filter(Boolean).join('；') : '',
-          retryId: job?.result?.canRetry && job.status !== 'queued' && job.status !== 'running' ? job.id : '' };
+          message: job?.result?.steps ? Object.values(job.result.steps).filter(step => step.status === 'failed' || step.skipReason === 'retake').map(step => step.errorCode === 'PROVIDER_PENDING' ? '处理未完成，请重试' : step.message).filter(Boolean).join('；') : '',
+          providerPending: Boolean(job?.providerPending),
+          retryId: job && (job.providerPending || job.result?.canRetry) && job.status !== 'queued' && job.status !== 'running' ? job.id : '' };
       });
       const locateJob = [...record.jobs].reverse().find(job => job.kind === 'locate');
       const coverJob = [...record.jobs].reverse().find(job => job.kind === 'set-cover');
-      this.setData({ locateMessage: locateJob?.phase || '未生成单品，请补充描述重新识别，或更换照片', record, sourceUrl: urls[record.inputAssetId], items, count: items.filter(item => item.included && item.clothing).length, loading: false,
-        coverMessage: coverJob?.status === 'queued' || coverJob?.status === 'running' ? '正在生成整套图…' : coverJob?.status === 'failed' ? coverJob.result?.steps?.cutout.message || coverJob.phase : '',
-        coverRetryId: coverJob?.status === 'failed' && coverJob.result?.canRetry !== false ? coverJob.id : '',
+      this.setData({ locateMessage: (locateJob?.errorCode === 'PROVIDER_PENDING' ? '识别未完成，请重试' : locateJob?.phase) || '未生成单品，请补充描述重新识别，或更换照片', record, sourceUrl: urls[record.inputAssetId], items, count: items.filter(item => item.included && item.clothing).length, loading: false,
+        coverMessage: coverJob?.status === 'queued' || coverJob?.status === 'running' ? '正在生成整套图…' : coverJob?.status === 'failed' ? coverJob.providerPending ? '整套图生成未完成' : coverJob.result?.steps?.cutout.message || coverJob.phase : '',
+        coverRetryId: coverJob?.status === 'failed' && (coverJob.providerPending || coverJob.result?.canRetry !== false) ? coverJob.id : '', coverProviderPending: Boolean(coverJob?.providerPending),
+        locateRetryId: locateJob?.status === 'failed' && locateJob.providerPending ? locateJob.id : '',
         ...(!this.dirty ? { name: record.name, saveAsSet: record.saveAsSet } : {}),
         ...(!this.coverDirty ? { coverAssetId: record.coverAssetId || '', coverUrl: record.coverAssetId ? urls[record.coverAssetId] : '' } : {}) });
       if (record.pending) this.timer = setTimeout(() => { void this.load(); }, 2500);

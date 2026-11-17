@@ -49,3 +49,7 @@ button.city-result--selected { background: var(--soft); color: var(--primary); b
 .city-result__name { font-size: var(--sheet-option-size); font-weight: 500; }
 .city-result__path { margin-top: 6rpx; color: var(--muted); font-size: 23rpx; }
 @keyframes weather-spin { to { transform: rotate(360deg); } }
+
+.weather-card__skeleton { animation: weather-loading 1.8s ease-in-out infinite; }
+@keyframes weather-loading { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .weather-card__skeleton { animation: none; } }

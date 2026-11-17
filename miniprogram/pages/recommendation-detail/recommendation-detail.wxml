@@ -1,5 +1,5 @@
 <view class="page recommendation-detail">
-  <view wx:if="{{loading}}" class="state">正在加载搭配…</view>
+  <app-loading wx:if="{{loading}}" variant="{{outfit ? 'inline' : 'detail'}}" text="正在加载搭配" />
   <view wx:if="{{error}}" class="error" bindtap="onRetry">{{error}} · 点击重试</view>
   <block wx:if="{{outfit}}">
     <view class="recommendation-detail__canvas {{items.length > 3 ? 'recommendation-detail__canvas--grid' : ''}}"><image wx:for="{{items}}" wx:key="clothingId" class="recommendation-detail__image" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" /></view>

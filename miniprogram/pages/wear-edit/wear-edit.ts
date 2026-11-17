@@ -8,7 +8,7 @@ import type { DateDetail } from '../../components/app-date-sheet/app-date-sheet'
 import { currentDate } from '../../utils/format';
 
 Page({
-  scope: new RequestScope(), id: '', version: 0, sourceOutfitId: '', clothesPage: 0, outfitsPage: 0, clothesGeneration: 0,
+  scope: new RequestScope(), id: '', version: 0, dirty: false, sourceOutfitId: '', clothesPage: 0, outfitsPage: 0, clothesGeneration: 0,
   data: { dateOpen: false, draftIds: Array<string>(), draftOutfitId: '', draftOccasion: '', loadingClothes: false, loadingOutfits: false, choosing: false, wornOn: currentDate(), today: currentDate(), occasion: '', notes: '', bodyAssetId: '', bodyUrl: '',
     clothes: Array<Clothing & { imageUrl: string; selected: boolean; draftSelected: boolean; visible: boolean }>(), outfits: Array<Outfit & { imageUrl: string; layers: { clothingId: string; imageUrl: string; style: string }[] }>(), selectedIds: Array<string>(),
     chooseTab: 'clothes', searchText: '', q: '', categoryId: '', rootCategoryId: '', categories: Array<Category>(), rootCategories: Array<Category & { icon: string }>(), subCategories: Array<Category>(),
@@ -25,7 +25,7 @@ Page({
   onImageError(event: WechatMiniprogram.ImageError) {
     void refreshExpiredImage(this.scope, event, (oldUrl, url) => { this.setData({ bodyUrl: this.data.bodyUrl === oldUrl ? url : this.data.bodyUrl, clothes: this.data.clothes.map(item => ({ ...item, imageUrl: item.imageUrl === oldUrl ? url : item.imageUrl })), outfits: this.data.outfits.map(item => ({ ...item, imageUrl: item.imageUrl === oldUrl ? url : item.imageUrl, layers: item.layers.map(layer => ({ ...layer, imageUrl: layer.imageUrl === oldUrl ? url : layer.imageUrl })) })) }); }, message => this.setData({ error: message }));
   },
-  onUnload() { this.clothesGeneration++; this.scope.close(); },
+  onUnload() { this.clothesGeneration++; this.scope.close(); wx.disableAlertBeforeUnload(); },
   onChoose() { if (this.data.busy || this.data.loading) return; this.setData({ choosing: true, error: '', draftIds: [...this.data.selectedIds], draftOutfitId: this.sourceOutfitId, draftOccasion: this.data.occasion, clothes: this.data.clothes.map(item => ({ ...item, draftSelected: this.data.selectedIds.includes(item.id) })) }); },
   onChooseTab(event: WechatMiniprogram.TouchEvent) {
     if (this.data.busy) return;
@@ -49,13 +49,14 @@ Page({
   },
   onCloseChoose() { this.setData({ choosing: false }); },
   onConfirmChoose() {
+    if (this.sourceOutfitId !== this.data.draftOutfitId || this.data.occasion !== this.data.draftOccasion || this.data.selectedIds.length !== this.data.draftIds.length || this.data.draftIds.some(id => !this.data.selectedIds.includes(id))) this.markDirty();
     this.sourceOutfitId = this.data.draftOutfitId;
     this.setData({ choosing: false, selectedIds: this.data.draftIds, occasion: this.data.draftOccasion, clothes: this.data.clothes.map(item => ({ ...item, selected: this.data.draftIds.includes(item.id) })) });
   },
   onOpenDate() { if (!this.data.busy && !this.data.loading) this.setData({ dateOpen: true }); },
   onCloseDate() { this.setData({ dateOpen: false }); },
-  onDate(event: WechatMiniprogram.CustomEvent<DateDetail>) { this.setData({ wornOn: event.detail.value, dateOpen: false }); },
-  onInput(event: WechatMiniprogram.Input) { const field = z.enum(['occasion', 'notes']).parse(event.currentTarget.dataset.field); this.setData({ [field]: event.detail.value }); },
+  onDate(event: WechatMiniprogram.CustomEvent<DateDetail>) { if (event.detail.value !== this.data.wornOn) this.markDirty(); this.setData({ wornOn: event.detail.value, dateOpen: false }); },
+  onInput(event: WechatMiniprogram.Input) { const field = z.enum(['occasion', 'notes']).parse(event.currentTarget.dataset.field); if (event.detail.value !== this.data[field]) this.markDirty(); this.setData({ [field]: event.detail.value }); },
   onClothing(event: WechatMiniprogram.TouchEvent) {
     if (this.data.busy) return;
     const id = idSchema.parse(event.currentTarget.dataset.id);
@@ -77,7 +78,7 @@ Page({
   onMoreOutfits() { void this.loadOutfits(); },
   onRetryCategories() { void this.loadCategories(); },
   onRetry() { void this.load(); },
-  onRemovePhoto() { this.setData({ bodyAssetId: '', bodyUrl: '' }); },
+  onRemovePhoto() { if (this.data.bodyAssetId) this.markDirty(); this.setData({ bodyAssetId: '', bodyUrl: '' }); },
   async onPhoto() {
     if (this.data.busy) return;
     try {
@@ -85,6 +86,7 @@ Page({
       if (!this.scope.active) return;
       this.setData({ busy: true, error: '' });
       const uploaded = await uploadPhoto(this.scope, selected.tempFiles[0].tempFilePath, 'body-photo');
+      this.markDirty();
       this.setData({ bodyAssetId: uploaded.data.assetId, bodyUrl: selected.tempFiles[0].tempFilePath, busy: false });
     } catch (error) {
       const cancel = z.object({ errMsg: z.string() }).safeParse(error);
@@ -101,6 +103,8 @@ Page({
     try {
       if (this.id) await updateWearRecord(this.scope, this.id, wearPatchSchema.parse({ ...common, version: this.version, clothingIds: this.data.selectedIds }));
       if (!this.id) await createWearRecord(this.scope, wearInputSchema.parse({ ...common, ...(this.sourceOutfitId ? { outfitId: this.sourceOutfitId } : { clothingIds: this.data.selectedIds }) }));
+      this.dirty = false;
+      wx.disableAlertBeforeUnload();
       this.setData({ busy: false }); wx.navigateBack();
     } catch (error) { const message = errorMessage(error); if (message) this.setData({ error: message, busy: false }); }
   },
@@ -108,9 +112,10 @@ Page({
     if (!this.id || this.data.busy) return;
     const answer = await wx.showModal({ title: '删除这条穿搭记录？', content: '穿着次数和最近穿着日期会同步更新。', confirmText: '删除' });
     if (!answer.confirm || !this.scope.active) return; this.setData({ busy: true, error: '' });
-    try { await deleteWearRecord(this.scope, this.id); wx.navigateBack(); }
+    try { await deleteWearRecord(this.scope, this.id); this.dirty = false; wx.disableAlertBeforeUnload(); wx.navigateBack(); }
     catch (error) { const message = errorMessage(error); if (message) this.setData({ error: message, busy: false }); }
   },
+  markDirty() { if (this.dirty) return; this.dirty = true; wx.enableAlertBeforeUnload({ message: '穿搭记录尚未保存，离开后本次修改会丢失' }); },
   async addSelectedClothes(ids: string[]) {
     const missing = ids.filter(id => !this.data.clothes.some(item => item.id === id));
     const additions = await Promise.all(missing.map(id => getClothing(this.scope, id)));
@@ -172,6 +177,7 @@ Page({
       }
       if (this.sourceOutfitId) { const result = await getOutfit(this.scope, this.sourceOutfitId); this.setData({ selectedIds: result.data.items.map(item => item.clothingId), occasion: result.data.occasion }); }
       if (clothingId) this.setData({ selectedIds: [clothingId] });
+      if (!this.id && this.data.selectedIds.length) this.markDirty();
       await Promise.all([this.loadClothes(), this.loadOutfits(), this.loadCategories()]); await this.addSelectedClothes(this.data.selectedIds); this.setData({ loading: false });
     } catch (error) { const message = errorMessage(error); if (message) this.setData({ error: message, loading: false }); }
   }

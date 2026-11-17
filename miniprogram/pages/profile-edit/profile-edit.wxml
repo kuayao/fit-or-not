@@ -1,5 +1,5 @@
 <view class="page profile-edit">
-  <view wx:if="{{loading}}" class="state">正在加载个人资料…</view>
+  <app-loading wx:if="{{loading}}" variant="{{loaded ? 'inline' : 'list'}}" text="正在加载个人资料" />
   <view wx:if="{{error}}" class="error">{{error}}</view>
   <t-button wx:if="{{!loading && !loaded}}" t-class="ui-button" block bind:tap="onRetry">重新加载</t-button>
   <form wx:if="{{loaded}}" bindsubmit="onSave">

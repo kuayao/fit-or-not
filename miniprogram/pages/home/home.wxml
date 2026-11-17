@@ -1,10 +1,11 @@
 <view class="page page--tab home-page">
-  <app-weather wx:if="{{ready}}" class="home-weather" bind:weatherchange="onWeatherChange" bind:citychange="onCityChange" />
+  <app-weather wx:if="{{ready}}" class="home-weather" bind:weatherchange="onWeatherChange" bind:citychange="onCityChange" bind:loadingchange="onWeatherLoadingChange" />
+  <app-loading wx:if="{{ready && weatherLoading && !weatherReady}}" variant="grid" text="正在加载今日穿搭" />
   <view wx:if="{{weatherReady}}" class="recommendations" aria-live="polite">
     <view class="recommendations__heading"><text class="recommendations__title">今日推荐</text><text class="recommendations__ai">AI</text></view>
     <view wx:if="{{recommendation.summary}}" class="recommendations__summary">{{recommendation.summary}}</view>
     <view wx:if="{{loading && !recommendation}}" class="recommendations__loading">
-      <view class="recommendations__loading-label">正在挑选适合今天的衣服…</view>
+      <app-loading text="正在挑选适合今天的衣服" />
       <view class="recommendations__skeleton-grid"><view class="recommendations__skeleton" /><view class="recommendations__skeleton" /><view class="recommendations__skeleton" /></view>
       <view class="recommendations__skeleton recommendations__skeleton--outfit" />
     </view>

@@ -24,7 +24,7 @@
     </view>
   </view>
 
-  <view wx:if="{{loading}}" class="state">正在加载清单…</view>
+  <app-loading wx:if="{{loading}}" variant="{{lists.length ? 'inline' : 'list'}}" text="正在加载清单" />
   <view wx:if="{{error}}" class="packing-error">
     <view class="packing-error__message">{{error}}</view>
     <t-button t-class="ui-button" size="small" disabled="{{loading}}" bind:tap="onRetry">重新加载</t-button>

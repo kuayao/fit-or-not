@@ -1,24 +1,33 @@
-<view class="page page--form">
-  <view wx:if="{{loading}}" class="state">正在加载…</view>
+<view class="page page--form {{processing ? 'page--processing' : ''}}">
+  <app-loading wx:if="{{loading}}" variant="{{imageUrl ? 'inline' : 'form'}}" text="正在加载" />
   <view wx:if="{{error && !imageUrl}}" class="error" bindtap="onRetry">{{error}} · 点击重试</view>
   <block wx:if="{{imageUrl}}">
-  <view class="upload-card {{processing ? 'upload-card--processing' : ''}}" bindtap="onChoosePhoto" aria-disabled="{{processing}}">
+  <view class="{{processing ? 'processing-card' : ''}}">
+  <view class="upload-card {{processing ? 'upload-card--processing' : ''}} {{processing && !processError ? 'clothing-visual--processing' : ''}}" bindtap="onChoosePhoto" aria-disabled="{{processing}}">
     <image wx:if="{{imageUrl}}" class="upload-preview" src="{{imageUrl}}" data-url="{{imageUrl}}" binderror="onImageError" mode="aspectFit" />
     <image wx:else class="upload-placeholder" src="/assets/icons/image.svg" />
-    <recognition-particles wx:if="{{processing && !processError}}" />
+    <recognition-particles wx:if="{{processing && !processError}}" status="{{processQueued ? '排队中' : processStatus || '正在处理图片'}}" />
     <view wx:if="{{!processing}}" class="upload-label"><image class="icon" src="/assets/icons/camera.svg" mode="aspectFit" />选择或更换照片</view>
   </view>
   <view wx:if="{{processing}}" class="processing-state">
-    <view class="processing-state__status"><view wx:if="{{!processError}}" class="processing-dots" aria-hidden="true"><view class="processing-dots__dot" /><view class="processing-dots__dot" /><view class="processing-dots__dot" /></view><text>{{processStatus || '等待处理'}}</text></view>
+    <view class="processing-state__summary">
+      <view class="processing-state__copy">
+        <view class="processing-state__name">{{name || '衣物图片'}}</view>
+        <view class="processing-state__status {{processError ? 'processing-state__status--error' : ''}}"><view class="processing-state__dot" aria-hidden="true" /><text wx:if="{{processQueued && !processError}}" class="processing-state__phase">排队中</text><text wx:else class="processing-state__phase">{{processStatus || '正在处理图片'}}</text></view>
+      </view>
+      <view class="processing-state__badge">{{processError ? '待刷新' : processQueued ? '排队中' : '处理中'}}</view>
+    </view>
     <view class="text-button processing-state__link" bindtap="onTasks" hover-class="control--pressed" aria-role="button">查看处理列表<image class="icon icon--small" src="/assets/icons/chevron.svg" mode="aspectFit" /></view>
   </view>
+  </view>
   <view wx:if="{{imageUrl && !processing}}" class="photo-actions"><t-button t-class="ui-button" wx:if="{{processedAssetId}}" size="small" disabled="{{busy}}" bind:tap="onCompare">查看对比</t-button><t-button t-class="ui-button" size="small" disabled="{{busy}}" bind:tap="onCrop">裁剪图片</t-button></view>
-  <view wx:if="{{imageUrl && !processing}}" class="status-box process-action {{!imageProcessingAvailable ? 'process-action--disabled' : ''}}" bindtap="onProcess" aria-role="button" aria-label="处理衣物图片"><image class="icon" src="/assets/icons/sparkles.svg" mode="aspectFit" /><view class="grow">修补或重新识别<view class="status-copy">{{processStatus || (imageProcessingAvailable ? '修补单品图，或从原图重新识别' : imageProcessingReason)}}</view></view></view>
+  <view wx:if="{{imageUrl && !processing}}" class="status-box process-action {{!imageProcessingAvailable ? 'process-action--disabled' : ''}}" bindtap="onProcess" aria-role="button" aria-label="处理衣物图片"><image class="icon" src="/assets/icons/sparkles.svg" mode="aspectFit" /><view class="grow">修补或重新识别<view wx:if="{{processStatus || !imageProcessingAvailable}}" class="status-copy">{{processStatus || imageProcessingReason}}</view></view></view>
   <view wx:if="{{processError}}" class="error">{{processError}}</view>
+  <view wx:if="{{processRetryId && !processing}}" class="photo-actions"><t-button t-class="ui-button" size="small" loading="{{busy}}" disabled="{{busy || loading}}" bind:tap="onRetryProcess">{{processNeedsConfirmation ? '重新处理' : '重试未完成部分'}}</t-button></view>
   <view wx:if="{{remainingCount}}" class="notice">已有 {{uploadedCount}} 件进入衣橱，剩余 {{remainingCount}} 张待上传<t-button t-class="ui-button" size="small" disabled="{{busy}}" bind:tap="onRetryUpload">{{busy ? '上传中' : '继续上传'}}</t-button><t-button wx:if="{{!busy && uploadedCount}}" t-class="ui-button" size="small" bind:tap="onWardrobe">查看衣橱</t-button></view>
   <view wx:if="{{error}}" class="error">{{error}}</view><view wx:if="{{fieldError}}" class="error">{{fieldError}}</view><view wx:if="{{sizeHint && !showMore}}" class="notice">{{sizeHint}}</view>
   <block wx:if="{{imageUrl && !processing && !loading}}">
-  <view class="field"><view class="field-label">衣物名称 · 选填</view><input class="input" maxlength="60" value="{{name}}" data-field="name" bindinput="onInput" placeholder="为它取个容易找到的名字" /></view>
+  <view class="field"><view class="field-label">衣物名称 · 选填</view><input class="input" maxlength="60" value="{{name}}" data-field="name" bindinput="onInput" placeholder="填写衣物名称" /></view>
   <view class="field-pair">
     <view class="field"><view class="field-label">一级分类 · 必填</view><view data-choice="root-category" bindtap="onOpenChoice" aria-role="button"><view class="choice-value row row--between"><text class="choice-value__text">{{rootCategoryId ? rootCategories[rootCategoryIndex].name : '请选择一级分类'}}</text><image class="icon icon--small" src="/assets/icons/chevron.svg" mode="aspectFit" /></view></view></view>
     <view class="field"><view class="field-label">二级分类 · 选填</view><view data-choice="sub-category" bindtap="onOpenChoice" aria-role="button" aria-disabled="{{!rootCategoryId}}"><view class="choice-value row row--between {{!rootCategoryId ? 'choice-value--disabled' : ''}}"><text class="choice-value__text">{{subcategorySuggestionVisible && subcategoryDecision === 'create' ? subcategorySuggestionName || '填写分类名称' : rootCategoryId ? subCategories[subCategoryIndex].name : '先选一级分类'}}</text><image class="icon icon--small" src="/assets/icons/chevron.svg" mode="aspectFit" /></view></view></view>
@@ -42,33 +51,40 @@
   </view>
   </block></block></view>
 
-<app-sheet visible="{{processOpen}}" title="处理衣物图片" busy="{{busy}}" bind:close="onCloseProcess">
-  <scroll-view wx:if="{{processOpen}}" class="reidentify-scroll" scroll-y enhanced>
+<app-sheet visible="{{processOpen}}" title="处理衣物图片" size="large" busy="{{busy || promptRefining}}" bind:close="onCloseProcess">
+  <view wx:if="{{processOpen}}" class="reidentify-content">
     <view class="reidentify-modes">
-      <button wx:if="{{processedAssetId}}" class="reidentify-mode {{processMode === 'repair' ? 'reidentify-mode--selected' : ''}}" data-mode="repair" disabled="{{busy || processLocked}}" bindtap="onProcessMode" aria-pressed="{{processMode === 'repair'}}">修补当前图片</button>
-      <button class="reidentify-mode {{processMode === 'reidentify' ? 'reidentify-mode--selected' : ''}}" data-mode="reidentify" disabled="{{busy || processLocked}}" bindtap="onProcessMode" aria-pressed="{{processMode === 'reidentify'}}">从原图重新识别</button>
+      <button wx:if="{{processedAssetId}}" class="reidentify-mode {{processMode === 'repair' ? 'reidentify-mode--selected' : ''}}" data-mode="repair" disabled="{{busy || processLocked || promptRefining}}" bindtap="onProcessMode" aria-pressed="{{processMode === 'repair'}}">修补当前图片</button>
+      <button class="reidentify-mode {{processMode === 'reidentify' ? 'reidentify-mode--selected' : ''}}" data-mode="reidentify" disabled="{{busy || processLocked || promptRefining}}" bindtap="onProcessMode" aria-pressed="{{processMode === 'reidentify'}}">从原图重新识别</button>
     </view>
     <view wx:if="{{processMode === 'repair'}}" class="reidentify-references">
-      <view class="reidentify-reference"><image class="reidentify-reference__image" src="{{processedImageUrl}}" data-url="{{processedImageUrl}}" binderror="onImageError" mode="aspectFit" bindtap="onPreviewProcessImage" /><view class="reidentify-reference__label">当前图片 · 修改底图</view></view>
-      <view class="reidentify-reference"><image class="reidentify-reference__image" src="{{originalImageUrl}}" data-url="{{originalImageUrl}}" binderror="onImageError" mode="aspectFit" bindtap="onPreviewProcessImage" /><view class="reidentify-reference__label">原图 · 结构参考</view></view>
+      <view class="reidentify-reference"><image class="reidentify-reference__image" src="{{processedImageUrl}}" data-url="{{processedImageUrl}}" binderror="onImageError" mode="aspectFit" bindtap="onPreviewProcessImage" /><view class="reidentify-reference__label">当前图片</view></view>
+      <view class="reidentify-reference"><image class="reidentify-reference__image" src="{{originalImageUrl}}" data-url="{{originalImageUrl}}" binderror="onImageError" mode="aspectFit" bindtap="onPreviewProcessImage" /><view class="reidentify-reference__label">原图</view></view>
     </view>
     <image wx:else class="reidentify-photo" src="{{originalImageUrl}}" data-url="{{originalImageUrl}}" binderror="onImageError" mode="aspectFit" />
-    <view class="field-label">{{processMode === 'repair' ? '修补意见 · 必填' : '补充描述 · 选填'}}</view>
-    <textarea class="textarea reidentify-input" maxlength="300" value="{{processPrompt}}" disabled="{{busy || processLocked}}" bindinput="onProcessPrompt" placeholder="{{processMode === 'repair' ? '例如：参考原图补齐两根细肩带，衣身和花纹保持不变' : '例如：只识别里面的深灰色背心，排除外面的开衫'}}" cursor-spacing="24" show-confirm-bar="{{false}}" aria-label="{{processMode === 'repair' ? '修补意见' : '补充描述'}}" />
-    <view class="reidentify-count">{{processPrompt.length}} / 300</view>
-    <view class="form-hint">{{processMode === 'repair' ? '仅修补单品图，保留现有资料。' : '重新生成单品图并更新识别资料。'}}</view>
+    <view class="reidentify-editor">
+      <view class="reidentify-editor__header">
+        <view class="field-label">{{processMode === 'repair' ? '修补意见 · 必填' : '补充描述 · 选填'}}</view>
+        <view class="reidentify-refine {{busy || processLocked || !processPrompt ? 'reidentify-refine--disabled' : ''}} {{promptRefining ? 'reidentify-refine--running' : ''}}">
+          <t-button t-class="reidentify-refine__button" size="small" theme="primary" loading="{{promptRefining}}" disabled="{{busy || processLocked || promptRefining || !processPrompt}}" bind:tap="onRefinePrompt"><view class="reidentify-refine__content"><image wx:if="{{!promptRefining}}" class="reidentify-refine__icon" src="/assets/icons/sparkles.svg" mode="aspectFit" /><text>{{promptRefining ? '优化中' : '优化描述'}}</text></view></t-button>
+        </view>
+      </view>
+      <textarea class="textarea reidentify-input" maxlength="300" value="{{processPrompt}}" disabled="{{busy || processLocked || promptRefining}}" bindinput="onProcessPrompt" placeholder="{{processMode === 'repair' ? '例如：参考原图补齐两根细肩带，衣身和花纹保持不变' : '例如：只识别里面的深灰色背心，排除外面的开衫'}}" cursor-spacing="24" show-confirm-bar="{{false}}" aria-label="{{processMode === 'repair' ? '修补意见' : '补充描述'}}" />
+      <view class="reidentify-count">{{processPrompt.length}} / 300</view>
+    </view>
     <view wx:if="{{processError || error || fieldError}}" class="error">{{processError || error || fieldError}}</view>
-  </scroll-view>
-  <view slot="footer" class="reidentify-footer"><t-button t-class="ui-button" class="button-block" block theme="primary" loading="{{busy}}" disabled="{{busy || (processMode === 'repair' && !processPrompt)}}" bind:tap="onConfirmProcess">{{processLocked ? '重试提交' : processMode === 'repair' ? '开始修补' : '开始识别'}}</t-button></view>
+  </view>
+  <view slot="footer" class="reidentify-footer">
+    <t-button t-class="reidentify-submit" class="button-block" block="{{true}}" theme="primary" loading="{{busy}}" disabled="{{busy || promptRefining || (processMode === 'repair' && !processPrompt)}}" bind:tap="onConfirmProcess">{{processLocked ? '重试提交' : processMode === 'repair' ? '开始修补' : '开始识别'}}</t-button>
+  </view>
 </app-sheet>
 
 <app-sheet visible="{{showMore && !choice && !processing}}" title="更多衣物资料" scrollable size="large" busy="{{busy}}" bind:close="onCloseMore">
-  <view class="form-hint">确认后填入表单，保存衣物时一起生效。</view>
   <view class="field-pair"><view class="field"><view class="field-label">具体类型</view><input class="input" maxlength="30" value="{{moreDraft.itemType}}" data-field="itemType" bindinput="onMoreInput" placeholder="例如连帽针织开衫" /></view><view class="field"><view class="field-label">颜色描述</view><input class="input" maxlength="30" value="{{moreDraft.colorDescription}}" data-field="colorDescription" bindinput="onMoreInput" placeholder="例如奶油白" /></view></view>
   <view class="field"><view class="field-label">图案</view><view class="choice-value row row--between" data-choice="pattern" bindtap="onOpenChoice" aria-role="button"><text class="choice-value__text">{{patternOptions[moreDraft.patternIndex].label}}</text><image class="icon icon--small" src="/assets/icons/chevron.svg" mode="aspectFit" /></view></view>
   <view class="field"><view class="field-label">可见特征 · 最多 5 项</view><input class="input" maxlength="104" value="{{moreDraft.visibleFeaturesText}}" data-field="visibleFeaturesText" bindinput="onMoreInput" placeholder="用顿号分隔，例如连帽、长袖、拉链" /></view>
   <view wx:if="{{sizeHint}}" class="notice">{{sizeHint}}</view>
-  <view wx:if="{{optionsLoading}}" class="state">正在加载品牌、尺码与面料…</view>
+  <app-loading wx:if="{{optionsLoading}}" text="正在加载品牌、尺码与面料" />
   <view wx:if="{{optionsError}}" class="error" bindtap="onRetryOptions">{{optionsError}} · 点击重试</view>
   <view wx:for="{{optionGroups}}" wx:for-item="group" wx:key="kind" class="field">
     <view class="row row--between"><view class="field-label">{{group.label}} · 选填</view><view class="text-button" data-kind="{{group.kind}}" bindtap="onManageOptions" hover-class="control--pressed">维护{{group.label}}</view></view>
@@ -81,7 +97,7 @@
   <view wx:if="{{error}}" class="error">{{error}}</view><view class="field"><view class="field-label">细节照片 · 最多 9 张</view><t-button t-class="ui-button" block="{{true}}" custom-style="display:flex;width:100%" class="button-block" disabled="{{busy || moreDraft.detailPhotos.length >= 9}}" loading="{{busy}}" bind:tap="onDetailPhotos">添加细节照片</t-button><view class="sheet-photo-grid section"><view wx:for="{{moreDraft.detailPhotos}}" wx:key="id"><image class="thumb" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" /><t-button t-class="ui-button" size="small" disabled="{{busy}}" data-id="{{item.id}}" bind:tap="onRemoveDetail">移除</t-button></view></view></view>
   <view slot="footer"><t-button t-class="ui-button" block="{{true}}" theme="primary" disabled="{{busy || optionsLoading || !!optionsError}}" bind:tap="onConfirmMore" custom-style="display:flex;width:100%" class="button-block">确认资料</t-button></view>
 </app-sheet>
-<app-select-sheet visible="{{!!choice && choice !== 'date'}}" title="{{choiceTitle}}" items="{{choiceItems}}" value="{{choice === 'root-category' ? rootCategoryId : choice === 'sub-category' ? categoryId : choice === 'pattern' ? moreDraft.pattern : moreDraft[optionField]}}" loading="{{choice === 'option' && optionsLoading}}" error="{{choice === 'option' ? optionsError : ''}}" hint="{{choice === 'option' && choiceItems.length === 1 ? '还没有可选项，可以先添加一项' : ''}}" bind:select="onChoose" bind:close="onCloseChoice" bind:retry="onRetryOptions">
+<app-select-sheet visible="{{!!choice && choice !== 'date'}}" title="{{choiceTitle}}" items="{{choiceItems}}" value="{{choice === 'root-category' ? rootCategoryId : choice === 'sub-category' ? categoryId : choice === 'pattern' ? moreDraft.pattern : moreDraft[optionField]}}" loading="{{choice === 'option' && optionsLoading}}" error="{{choice === 'option' ? optionsError : ''}}" hint="{{choice === 'option' && choiceItems.length === 1 ? '暂无选项' : ''}}" bind:select="onChoose" bind:close="onCloseChoice" bind:retry="onRetryOptions">
   <view wx:if="{{choice === 'option'}}" slot="footer" class="sheet-link" data-kind="{{optionField === 'sizeId' ? sizeKind : optionField === 'brandId' ? 'brand' : 'material'}}" bindtap="onManageOptions" hover-class="control--pressed" aria-role="button">管理选项</view>
 </app-select-sheet>
 <app-date-sheet visible="{{choice === 'date'}}" title="购买日期" value="{{moreDraft.purchasedOn}}" max="{{today}}" bind:confirm="onDate" bind:close="onCloseChoice" />
@@ -89,5 +105,4 @@
 
 <app-sheet visible="{{compareOpen}}" title="原图与处理图" scrollable bind:close="onCloseCompare">
     <view class="image-compare__grid"><view><view class="field-label">原图</view><image class="image-compare__photo" src="{{originalImageUrl}}" data-url="{{originalImageUrl}}" binderror="onImageError" mode="aspectFit" /><t-button t-class="ui-button" class="button-block" block="{{true}}" custom-style="display:flex;width:100%" theme="{{primaryAssetId === originalAssetId ? 'primary' : 'default'}}" data-variant="original" bind:tap="onUseImage">使用原图</t-button></view><view><view class="field-label">处理图</view><image class="image-compare__photo image-compare__photo--processed" src="{{processedImageUrl}}" data-url="{{processedImageUrl}}" binderror="onImageError" mode="aspectFit" /><t-button t-class="ui-button" class="button-block" block="{{true}}" custom-style="display:flex;width:100%" theme="{{primaryAssetId === processedAssetId ? 'primary' : 'default'}}" data-variant="processed" bind:tap="onUseImage">使用处理图</t-button></view></view>
-    <view class="form-hint image-compare__hint">选择图片后，可继续裁剪和填写资料。</view>
 </app-sheet>

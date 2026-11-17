@@ -72,3 +72,6 @@ button.layer-select { flex: 1; display: flex; align-items: center; gap: 18rpx; t
 button.layer-action { min-height: 88rpx; padding: 0 12rpx; font-size: 23rpx; color: var(--primary); flex-shrink: 0; }
 @media (max-width: 360px) { button.canvas-action { padding: 0 6rpx; gap: 4rpx; } button.metadata-option { gap: 6rpx; font-size: 22rpx; } }
 @media (max-height: 600px) { .editor-heading { height: 88rpx; } .editor-library { height: 306rpx; } .closet-scroll { height: 148rpx; } .closet-strip { padding: 4rpx 0 12rpx; min-height: 148rpx; } button.closet-item, .closet-skeleton, .closet-feedback, button.closet-more { height: 132rpx; } .background-options { height: 224rpx; } }
+
+.closet-skeleton { animation: skeleton-breathe 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .closet-skeleton { animation: none; } }

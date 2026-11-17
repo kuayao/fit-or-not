@@ -10,7 +10,7 @@ type OutfitView = Omit<RecommendationOutfit, 'items'> & { items: ItemView[] };
 Page({
   scope: new RequestScope(), generation: 0, cityCode: '',
   data: {
-    ready: false, weatherReady: false, loading: false, error: '', imageError: '',
+    ready: false, weatherReady: false, weatherLoading: true, loading: false, error: '', imageError: '',
     recommendation: null as Recommendation | null, items: Array<ItemView>(), outfits: Array<OutfitView>(),
     outfitIndex: 0, updatedLabel: ''
   },
@@ -23,6 +23,9 @@ Page({
   },
   onHide() { this.generation++; this.scope.close(); this.setData({ loading: false }); },
   onUnload() { this.generation++; this.scope.close(); },
+  onWeatherLoadingChange(event: WechatMiniprogram.CustomEvent<{ loading: boolean }>) {
+    this.setData({ weatherLoading: event.detail.loading });
+  },
   onWeatherChange(event: WechatMiniprogram.CustomEvent<{ cityCode: string }>) {
     if (this.cityCode === event.detail.cityCode && this.data.loading) return;
     this.cityCode = event.detail.cityCode;

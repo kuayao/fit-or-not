@@ -17,7 +17,7 @@
         </view>
       </view>
     </view>
-    <view wx:if="{{loading && sets.length}}" class="state">正在加载套装…</view>
+    <app-loading wx:if="{{loading && sets.length}}" text="正在加载套装" />
     <view wx:if="{{loaded && !loading && !sets.length && !error}}" class="empty-state sets-empty"><image class="empty-icon" src="/assets/icons/hanger.svg" mode="aspectFit" /><view class="sets-empty__title">{{q ? '没有找到套装' : '还没有套装'}}</view></view>
   </view>
 </scroll-view>

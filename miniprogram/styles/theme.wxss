@@ -2,7 +2,6 @@ page, .theme {
   --bg: #FFFFFF; --ink: #424B55; --muted: #66717C; --primary: #426E91; --accent: #5B8DB7;
   --soft: #F0F6FB; --action: #EDF4FA; --action-line: #CBDCE9; --line: #E9EEF3; --photo: #F8F9FB; --muted-surface: #F7F9FB;
   --danger: #A54842; --radius: 23rpx; --space: 42rpx; --text-size: 31rpx;
-  --processing-bg: #080F1B;
   --td-brand-color: #426E91; --td-button-primary-bg-color: #E3EFF9; --td-button-primary-color: #426E91;
   --td-button-primary-border-color: #DCE8F2; --td-button-border-radius: 23rpx; --td-button-border-width: 2rpx;
   --td-button-default-bg-color: #F7F9FB; --td-button-default-color: #426E91; --td-button-default-border-color: #CBDCE9;
@@ -17,6 +16,10 @@ page, .theme {
   --sheet-option-radius: 16rpx; --sheet-option-size: 28rpx; --sheet-option-height: 96rpx;
   --sheet-gap: 12rpx; --disabled-ink: #96A3AE;
   --panel-radius: 34rpx; --on-primary: #FFFFFF;
+  --loading-base: #F0F4F8; --loading-highlight: #E4EDF5; --loading-radius: 12rpx;
+  --ai-action-radius: 999rpx; --ai-action-gradient: linear-gradient(110deg, #FF628F, #7285FF, #31C9A3, #FF628F); --ai-action-glow: #7285FF33;
+  --ai-processing-veil: linear-gradient(180deg, #FFFFFF52, #FFFFFF99 45%, #FFFFFFAD 72%, #FFFFFF66);
+  --ai-processing-sheen: linear-gradient(180deg, transparent, #7285FF1A 65%, #31C9A340);
   --weather-start: #9EBAD4; --weather-end: #6587AA; --weather-shadow: #426E911A;
   --weather-glass: #FFFFFF1F; --weather-glass-line: #FFFFFF38;
   background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;

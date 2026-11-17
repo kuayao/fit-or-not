@@ -11,7 +11,7 @@ export const servicesRouter = Router();
 servicesRouter.get('/capabilities', (_req, res) => {
   const imageReady = Boolean(config.NEW_API_KEY);
   res.json({ data: {
-    imageProcessing: { available: imageReady, reason: imageReady ? 'AI 抠图与识别已配置，资料自动保存' : '请在服务端配置 New API 密钥后上传解析' },
+    imageProcessing: { available: imageReady, reason: imageReady ? '图片处理可用' : '图片处理暂不可用' },
     weather: { available: Boolean(config.AMAP_KEY), reason: config.AMAP_KEY ? '高德天气已配置' : '尚未配置高德 Web 服务密钥' },
     recommendation: { available: imageReady && Boolean(config.AMAP_KEY), reason: imageReady && config.AMAP_KEY ? '天气推荐已配置' : '请配置天气和 AI 服务' },
     tryOn: { available: false, reason: '虚拟试穿服务商与费用上限尚未确定' },

@@ -4,10 +4,10 @@ import { RequestScope, errorMessage, requireSession, requestKey } from '../../ut
 
 type Photo = { id: string; path: string; mode: 'single' | 'set'; locked: boolean; submitted: boolean; error: string };
 Page({
-  scope: new RequestScope(), uploads: new Map<string, { assetId: string; key: string }>(),
+  scope: new RequestScope(), dirty: false, uploads: new Map<string, { assetId: string; key: string }>(),
   data: { photos: Array<Photo>(), busy: false, loading: true, available: false, error: '', singleCount: 0, setCount: 0, pendingCount: 0 },
   onLoad() { this.scope = new RequestScope(); if (requireSession()) void this.load(); },
-  onUnload() { this.scope.close(); },
+  onUnload() { this.scope.close(); wx.disableAlertBeforeUnload(); },
   onRetry() { void this.load(); },
   async onAdd() {
     if (this.data.busy || this.data.photos.length >= 20) return;
@@ -51,6 +51,7 @@ Page({
         if (!upload.assetId) upload.assetId = (await uploadPhoto(this.scope, photo.path)).data.assetId;
         await startClothingImport(this.scope, upload.assetId, photo.mode, upload.key);
         this.setData({ photos: this.data.photos.map(item => item.id === photo.id ? { ...item, submitted: true } : item) });
+        this.renderCounts();
       } catch (error) {
         const message = errorMessage(error);
         if (!message) return;
@@ -60,10 +61,14 @@ Page({
     }
     this.setData({ busy: false });
     this.renderCounts();
-    if (!this.data.pendingCount) wx.redirectTo({ url: '/pages/image-jobs/image-jobs' });
+    if (!this.data.pendingCount) wx.reLaunch({ url: '/pages/wardrobe/wardrobe' });
   },
   renderCounts() {
     this.setData({ singleCount: this.data.photos.filter(photo => photo.mode === 'single').length, setCount: this.data.photos.filter(photo => photo.mode === 'set').length, pendingCount: this.data.photos.filter(photo => !photo.submitted).length });
+    if (this.dirty === Boolean(this.data.pendingCount)) return;
+    this.dirty = Boolean(this.data.pendingCount);
+    if (this.dirty) { wx.enableAlertBeforeUnload({ message: '还有照片未提交识别，离开后需要重新选择' }); return; }
+    wx.disableAlertBeforeUnload();
   },
   async load() {
     this.setData({ loading: true, error: '' });

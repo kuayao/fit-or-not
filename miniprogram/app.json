@@ -1,5 +1,6 @@
 {
   "pages": [
+    "pages/launch/launch",
     "pages/welcome/welcome",
     "pages/home/home",
     "pages/wardrobe/wardrobe",
@@ -25,6 +26,9 @@
     "pages/recommendation-detail/recommendation-detail",
     "pages/try-on/try-on"
   ],
+  "usingComponents": {
+    "app-loading": "/components/app-loading/app-loading"
+  },
   "window": {
     "navigationBarTitleText": "搭搭不搭搭",
     "navigationBarBackgroundColor": "#FFFFFF",

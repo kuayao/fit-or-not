@@ -1,7 +1,7 @@
 name: fit-or-not-production
 services:
   api:
-    image: fit-or-not-backend:0.1.5
+    image: fit-or-not-backend:0.1.6
     pull_policy: never
     platform: linux/amd64
     restart: unless-stopped
@@ -21,7 +21,7 @@ services:
       retries: 10
       start_period: 20s
   worker:
-    image: fit-or-not-backend:0.1.5
+    image: fit-or-not-backend:0.1.6
     pull_policy: never
     platform: linux/amd64
     command: ["worker"]

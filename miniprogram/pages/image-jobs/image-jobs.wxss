@@ -14,6 +14,7 @@
 .job-card__status-dot--pending { animation: job-status-pulse 1.8s ease-in-out infinite; }
 .job-card__status--warning { color: var(--danger); border-color: var(--line); background: var(--bg); }
 .job-card__name { padding: 22rpx 24rpx; border-top: 1px solid var(--line); font-size: 27rpx; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+.job-card__retry { display: flex; justify-content: flex-end; padding: 0 24rpx 24rpx; }
 @keyframes job-status-pulse { 0%, 100% { opacity: .4; } 50% { opacity: 1; } }
 
 .import-job { display: flex; align-items: center; gap: 24rpx; padding: 24rpx 0; border-bottom: 1px solid var(--line); }

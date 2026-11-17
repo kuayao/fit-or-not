@@ -100,16 +100,26 @@ export async function clothingReferences(db: Database, userId: string, id: strin
   return result.rows[0];
 }
 async function deleteClothing(db: Database, userId: string, id: string) {
-  await db.query('SELECT id FROM users WHERE id=$1 FOR UPDATE', [userId]);
+  const imports = await db.query<{ id: string }>("SELECT r.id FROM clothing_imports r JOIN clothing_import_items i ON i.import_id=r.id AND i.user_id=r.user_id WHERE i.user_id=$1 AND i.clothing_id=$2 AND r.status NOT IN ('confirmed','cancelled') FOR UPDATE OF r", [userId, id]);
   await requireClothingEditable(db, userId, id);
   const references = await clothingReferences(db, userId, id);
   if (references.outfits.length + references.wearRecords.length + references.packingLists.length) throw new HttpError(409, 'RESOURCE_REFERENCED', '衣物仍被搭配、穿搭记录或清单引用，可先归档', references);
   await db.query('DELETE FROM clothes WHERE user_id=$1 AND id=$2', [userId, id]);
+  for (const record of imports.rows) {
+    const remaining = await db.query<{ count: number }>('SELECT count(*)::integer AS count FROM clothing_import_items WHERE user_id=$1 AND import_id=$2 AND clothing_id IS NOT NULL', [userId, record.id]);
+    await db.query(`UPDATE clothing_imports SET status=CASE WHEN $3=0 THEN 'cancelled'
+      WHEN EXISTS(SELECT 1 FROM image_jobs WHERE user_id=$1 AND import_id=$2 AND status IN ('queued','running') AND ($3<>1 OR kind<>'set-cover')) THEN 'processing' ELSE 'review' END,
+      mode=CASE WHEN $3=1 THEN 'single' ELSE mode END,save_as_set=CASE WHEN $3<2 THEN false ELSE save_as_set END,version=version+1
+      WHERE user_id=$1 AND id=$2`, [userId, record.id, remaining.rows[0].count]);
+    if (remaining.rows[0].count < 2) await db.query(`UPDATE image_jobs SET cancel_requested=true,status=CASE WHEN status='queued' THEN 'cancelled' ELSE status END,
+      phase=CASE WHEN status='queued' THEN '已取消' ELSE '正在取消' END,finished_at=CASE WHEN status='queued' THEN now() ELSE finished_at END
+      WHERE user_id=$1 AND import_id=$2 AND status IN ('queued','running') AND ($3=0 OR kind='set-cover')`, [userId, record.id, remaining.rows[0].count]);
+  }
 }
 export const clothesRouter = Router();
 clothesRouter.get('/', async (req, res) => {
   const input = pageQuerySchema.extend({
-    q: z.string().max(100).default(''), categoryId: idSchema.optional(),
+    q: z.string().max(100).default(''), categoryId: idSchema.optional(), missingSubcategory: z.enum(['true', 'false']).optional(),
     colors: z.string().transform(value => value.split(',')).pipe(z.array(z.enum(colors))).optional(),
     seasons: z.string().transform(value => value.split(',')).pipe(z.array(z.enum(seasons))).optional(),
     tagIds: z.string().transform(value => value.split(',')).pipe(z.array(idSchema).max(100)).optional(),
@@ -117,20 +127,21 @@ clothesRouter.get('/', async (req, res) => {
     favorite: z.enum(['true', 'false']).optional(), status: z.enum(['draft', 'active', 'archived', 'all', 'all-saved', 'wardrobe']).default('active'),
     sort: z.enum(['created', 'last-worn', 'wear-count', 'price']).default('created')
   }).strict().parse(req.query);
-  const values = [res.locals.user.id, `%${input.q}%`, input.categoryId || null, input.colors || null, input.seasons || null, input.tagIds || null, input.favorite === undefined ? null : input.favorite === 'true', input.status, input.occasionIds || null];
+  const values = [res.locals.user.id, `%${input.q}%`, input.categoryId || null, input.colors || null, input.seasons || null, input.tagIds || null, input.favorite === undefined ? null : input.favorite === 'true', input.status, input.occasionIds || null, input.missingSubcategory === 'true'];
   const where = `WHERE c.user_id=$1 AND (c.name ILIKE $2 OR brand.name ILIKE $2 OR c.notes ILIKE $2)
     AND ($3::uuid IS NULL OR c.category_id=$3 OR cat.parent_id=$3) AND ($4::text[] IS NULL OR c.colors && $4)
     AND ($5::text[] IS NULL OR c.seasons && $5 OR 'all'=ANY(c.seasons)) AND ($6::uuid[] IS NULL OR NOT EXISTS (SELECT 1 FROM unnest($6::uuid[]) t(id) WHERE NOT EXISTS (SELECT 1 FROM clothing_tags ct WHERE ct.user_id=c.user_id AND ct.clothing_id=c.id AND ct.tag_id=t.id)))
     AND ($7::boolean IS NULL OR c.favorite=$7) AND ($8='all' OR ($8='all-saved' AND c.status<>'draft') OR ($8='wardrobe' AND c.status<>'archived') OR c.status=$8)
-    AND ($9::uuid[] IS NULL OR EXISTS (SELECT 1 FROM clothing_tags ct JOIN tags t ON t.id=ct.tag_id AND t.user_id=ct.user_id WHERE ct.user_id=c.user_id AND ct.clothing_id=c.id AND t.kind='occasion' AND ct.tag_id=ANY($9)))`;
+    AND ($9::uuid[] IS NULL OR EXISTS (SELECT 1 FROM clothing_tags ct JOIN tags t ON t.id=ct.tag_id AND t.user_id=ct.user_id WHERE ct.user_id=c.user_id AND ct.clothing_id=c.id AND t.kind='occasion' AND ct.tag_id=ANY($9)))
+    AND (NOT $10::boolean OR cat.parent_id IS NULL)`;
   const sort = { created: 'c.created_at DESC', 'last-worn': '"lastWornOn" DESC NULLS LAST', 'wear-count': '"wearCount" DESC', price: 'c.price_cents DESC NULLS LAST' }[input.sort];
-  const result = await pool.query<Clothing>(`SELECT ${clothingColumns} ${clothingFrom} ${where} ORDER BY ${sort},c.id DESC LIMIT $10 OFFSET $11`, [...values, input.pageSize, (input.page - 1) * input.pageSize]);
+  const result = await pool.query<Clothing>(`SELECT ${clothingColumns} ${clothingFrom} ${where} ORDER BY ${sort},c.id DESC LIMIT $11 OFFSET $12`, [...values, input.pageSize, (input.page - 1) * input.pageSize]);
   const total = await pool.query<{ total: number }>(`SELECT count(*)::integer AS total FROM clothes c LEFT JOIN categories cat ON cat.id=c.category_id AND cat.user_id=c.user_id LEFT JOIN clothing_options brand ON brand.id=c.brand_id AND brand.user_id=c.user_id ${where}`, values);
   res.json({ data: result.rows, pagination: { page: input.page, pageSize: input.pageSize, total: total.rows[0].total } });
 });
 clothesRouter.post('/imports', async (req, res) => {
   const input = z.object({ inputAssetId: idSchema }).strict().parse(req.body);
-  if (!config.NEW_API_KEY) throw new HttpError(503, 'SERVICE_NOT_CONFIGURED', '请先配置 New API，再上传自动解析');
+  if (!config.NEW_API_KEY) throw new HttpError(503, 'SERVICE_NOT_CONFIGURED', '图片处理暂不可用，请稍后再试');
   res.status(201).json({ data: await idempotent(res.locals.user.id, '/clothes/imports', req.get('Idempotency-Key'), input, async client => {
     const clothing = await saveClothing(client, res.locals.user.id, clothingInputSchema.parse({ name: '待识别衣物', primaryAssetId: input.inputAssetId, status: 'draft' }), res.locals.user.timezone);
     await client.query("INSERT INTO image_jobs(user_id,input_asset_id,clothing_id,kind) VALUES($1,$2,$3,'process')", [res.locals.user.id, input.inputAssetId, clothing.id]);
@@ -144,6 +155,7 @@ clothesRouter.post('/', async (req, res) => {
 clothesRouter.post('/batch', async (req, res) => {
   const input = clothingBatchSchema.parse(req.body);
   await transaction(async client => {
+    if (input.action === 'delete') await client.query('SELECT id FROM users WHERE id=$1 FOR UPDATE', [res.locals.user.id]);
     const tags = input.action === 'replace-tags' || input.action === 'add-tags' || input.action === 'remove-tags'
       ? (await client.query<{ id: string; kind: 'occasion' | 'style' }>('SELECT id,kind FROM tags WHERE user_id=$1 FOR SHARE', [res.locals.user.id])).rows : [];
     if (input.action === 'replace-tags' || input.action === 'add-tags' || input.action === 'remove-tags') {
@@ -217,6 +229,7 @@ clothesRouter.get('/:id/references', async (req, res) => {
 clothesRouter.delete('/:id', async (req, res) => {
   const id = idSchema.parse(req.params.id);
   await transaction(async client => {
+    await client.query('SELECT id FROM users WHERE id=$1 FOR UPDATE', [res.locals.user.id]);
     const lock = await client.query('SELECT id FROM clothes WHERE user_id=$1 AND id=$2 FOR UPDATE', [res.locals.user.id, id]);
     if (!lock.rows.length) notFound();
     await deleteClothing(client, res.locals.user.id, id);

@@ -1,1 +1,12 @@
-<canvas type="2d" class="recognition-particles" aria-hidden="true" />
+<view class="clothing-processing {{!active ? 'clothing-processing--paused' : ''}}" aria-hidden="true">
+  <view class="clothing-processing__scan" />
+  <view class="clothing-processing__content">
+    <view class="clothing-processing__stars">
+      <image class="clothing-processing__star" src="/assets/icons/sparkles-gradient.svg" mode="aspectFit" />
+      <image class="clothing-processing__satellite clothing-processing__satellite--left" src="/assets/icons/sparkles-gradient.svg" mode="aspectFit" />
+      <image class="clothing-processing__satellite clothing-processing__satellite--right" src="/assets/icons/sparkles-gradient.svg" mode="aspectFit" />
+    </view>
+    <view class="clothing-processing__title">{{status}}</view>
+    <view class="clothing-processing__activity"><view class="clothing-processing__light" /></view>
+  </view>
+</view>

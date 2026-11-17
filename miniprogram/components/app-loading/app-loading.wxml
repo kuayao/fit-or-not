@@ -1,0 +1,26 @@
+<view class="loading loading--{{variant}}" aria-live="polite" aria-label="{{text}}">
+  <view wx:if="{{variant === 'startup'}}" class="loading__brand">
+    <view class="loading__emblem"><image class="loading__mark" src="/assets/icons/project-mark-clasp.svg" mode="aspectFit" /></view>
+    <view class="loading__name">搭搭不搭搭</view>
+    <view class="loading__activity" aria-hidden="true"><view class="loading__light" /></view>
+  </view>
+  <view wx:elif="{{variant !== 'inline' && variant !== 'compact'}}" class="loading__skeleton" aria-hidden="true">
+    <block wx:if="{{variant === 'form' || variant === 'detail'}}">
+      <view class="loading__block loading__hero" />
+      <view class="loading__block loading__title" />
+      <view class="loading__block loading__line" />
+      <view wx:if="{{variant === 'form'}}" class="loading__fields"><view class="loading__block loading__field" /><view class="loading__block loading__field" /></view>
+      <view class="loading__block loading__line loading__line--short" />
+    </block>
+    <view wx:elif="{{variant === 'grid'}}" class="loading__grid">
+      <view wx:for="{{[1, 2, 3, 4]}}" wx:key="*this" class="loading__card"><view class="loading__block loading__photo" /><view class="loading__block loading__line" /><view class="loading__block loading__line loading__line--short" /></view>
+    </view>
+    <view wx:else class="loading__list">
+      <view wx:for="{{[1, 2, 3]}}" wx:key="*this" class="loading__row"><view class="loading__block loading__thumb" /><view class="loading__body"><view class="loading__block loading__line" /><view class="loading__block loading__line loading__line--short" /></view></view>
+    </view>
+  </view>
+  <view class="loading__status">
+    <view class="loading__dots" aria-hidden="true"><view class="loading__dot" /><view class="loading__dot" /><view class="loading__dot" /></view>
+    <text class="loading__text">{{text}}</text>
+  </view>
+</view>

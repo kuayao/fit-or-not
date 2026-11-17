@@ -7,7 +7,7 @@
   </view>
   <view wx:if="{{overdue}}" class="trip-end-prompt"><text>行程结束了吗？</text><button disabled="{{busy}}" bindtap="onChangeStatus">结束行程</button></view>
   <view wx:if="{{error && !sheet}}" class="error" bindtap="onRetry">{{error}} · 点击重试</view>
-  <view wx:if="{{loading}}" class="state">正在加载清单…</view>
+  <app-loading wx:if="{{loading}}" variant="{{items.length ? 'inline' : 'list'}}" text="正在加载清单" />
   <view wx:if="{{name}}" class="packing-items__heading">
     <view class="packing-items__title"><text>清单衣物</text><text class="packing-items__count">{{total}} 件</text></view>
     <button wx:if="{{!endedAt}}" class="packing-items__add" hover-class="packing-items__add--pressed" disabled="{{busy || loading}}" bindtap="onChoose" aria-label="添加单品、搭配或套装"><image src="/assets/icons/plus.svg" mode="aspectFit" /><text>添加衣物</text></button>
@@ -65,7 +65,7 @@
         <scroll-view wx:if="{{!selectedOnly}}" class="picker-categories" scroll-y enhanced show-scrollbar="{{false}}">
           <view class="picker-category {{!rootCategoryId ? 'picker-category--active' : ''}}" data-id="" bindtap="onRootCategory" aria-role="button" aria-pressed="{{!rootCategoryId}}">全部</view>
           <view wx:for="{{rootCategories}}" wx:key="id" class="picker-category {{rootCategoryId === item.id ? 'picker-category--active' : ''}}" data-id="{{item.id}}" bindtap="onRootCategory" aria-role="button" aria-pressed="{{rootCategoryId === item.id}}">{{item.name}}</view>
-          <view wx:if="{{taxonomyLoading}}" class="picker-feedback">加载中…</view>
+          <app-loading wx:if="{{taxonomyLoading}}" text="加载中" />
         </scroll-view>
         <view class="picker-results">
           <scroll-view wx:if="{{!selectedOnly && rootCategoryId && subCategories.length}}" class="picker-subcategories" scroll-x show-scrollbar="{{false}}" scroll-into-view="picker-sub-{{categoryId}}">
@@ -78,7 +78,7 @@
                 <view class="picker-clothing__photo"><image src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" binderror="onImageError" mode="aspectFit" /><view class="picker-clothing__check"><image wx:if="{{item.selected || item.included}}" src="/assets/icons/check.svg" mode="aspectFit" /></view><view wx:if="{{item.included}}" class="picker-clothing__included">已在清单</view></view><view class="picker-clothing__name">{{item.name}}</view>
               </view>
             </view>
-            <block wx:if="{{!selectedOnly}}"><view wx:if="{{loadingChoices}}" class="picker-feedback">正在加载衣物…</view><view wx:elif="{{choiceError}}" class="picker-feedback picker-feedback--error" bindtap="onRetryChoices">{{choiceError}} · 点击重试</view><view wx:elif="{{!choices.length}}" class="picker-feedback">{{query || categoryId || favoriteOnly ? '没有符合条件的衣物' : '衣橱中还没有可选衣物'}}</view></block>
+            <block wx:if="{{!selectedOnly}}"><app-loading wx:if="{{loadingChoices}}" text="正在加载衣物" /><view wx:elif="{{choiceError}}" class="picker-feedback picker-feedback--error" bindtap="onRetryChoices">{{choiceError}} · 点击重试</view><view wx:elif="{{!choices.length}}" class="picker-feedback">{{query || categoryId || favoriteOnly ? '没有符合条件的衣物' : '衣橱中还没有可选衣物'}}</view></block>
             <view wx:if="{{selectedOnly && !selectedChoices.length}}" class="picker-feedback">还没有选中衣物</view>
           </scroll-view>
         </view>
@@ -96,12 +96,12 @@
             <button class="picker-set__add" data-id="{{item.id}}" data-source="sets" disabled="{{busy || !!addingGroup || loadingSets || !item.remainingCount}}" bindtap="onAddGroup">{{addingGroup === item.id ? '正在选入…' : !item.remainingCount ? '已选齐' : item.remainingCount < item.clothingIds.length ? '补齐 ' + item.remainingCount + ' 件' : '选入整套'}}</button>
           </view>
         </view>
-        <view wx:if="{{loadingSets}}" class="picker-feedback">正在加载套装…</view><view wx:elif="{{setError}}" class="picker-feedback picker-feedback--error" bindtap="onRetrySets">{{setError}} · 点击重试</view><view wx:elif="{{!sets.length}}" class="picker-feedback">{{setQuery ? '没有符合条件的套装' : '还没有保存的套装'}}</view>
+        <app-loading wx:if="{{loadingSets}}" text="正在加载套装" /><view wx:elif="{{setError}}" class="picker-feedback picker-feedback--error" bindtap="onRetrySets">{{setError}} · 点击重试</view><view wx:elif="{{!sets.length}}" class="picker-feedback">{{setQuery ? '没有符合条件的套装' : '还没有保存的套装'}}</view>
       </scroll-view>
     </view>
     <scroll-view wx:if="{{addTab === 'outfits'}}" class="picker-outfits" scroll-y enhanced show-scrollbar="{{false}}">
       <view wx:for="{{outfits}}" wx:key="id" class="picker-outfit"><view class="grow"><view class="picker-outfit__name">{{item.name}}</view><view class="card-meta">{{item.clothingIds.length}} 件衣物</view></view><t-button t-class="ui-button" size="small" data-id="{{item.id}}" loading="{{addingGroup === item.id}}" disabled="{{busy || !!addingGroup}}" data-source="outfits" bind:tap="onAddGroup">选入</t-button></view>
-      <view wx:if="{{loadingOutfits}}" class="picker-feedback">正在加载搭配…</view><view wx:elif="{{!outfits.length && !outfitError}}" class="picker-feedback">还没有保存的搭配</view><t-button wx:if="{{outfits.length < outfitsTotal || outfitError}}" t-class="ui-button" block loading="{{loadingOutfits}}" disabled="{{loadingOutfits || busy || !!addingGroup}}" bind:tap="onMoreOutfits">{{outfitError ? '重试加载搭配' : '加载更多搭配'}}</t-button>
+      <app-loading wx:if="{{loadingOutfits}}" text="正在加载搭配" /><view wx:elif="{{!outfits.length && !outfitError}}" class="picker-feedback">还没有保存的搭配</view><t-button wx:if="{{outfits.length < outfitsTotal || outfitError}}" t-class="ui-button" block loading="{{loadingOutfits}}" disabled="{{loadingOutfits || busy || !!addingGroup}}" bind:tap="onMoreOutfits">{{outfitError ? '重试加载搭配' : '加载更多搭配'}}</t-button>
     </scroll-view>
   </view>
   <view slot="footer"><block wx:if="{{sheet === 'add'}}"><view wx:if="{{error}}" class="picker-footer-error">{{error}}</view><t-button t-class="ui-button" block theme="primary" loading="{{busy}}" disabled="{{busy || !!addingGroup || !selectedChoices.length}}" bind:tap="onSave">确认添加 · {{selectedChoices.length}} 件</t-button></block><t-button wx:if="{{sheet === 'edit'}}" t-class="ui-button" block theme="primary" loading="{{busy}}" disabled="{{busy}}" bind:tap="onSave">保存清单</t-button></view>

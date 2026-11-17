@@ -38,3 +38,6 @@ button.recommended-item { flex: 0 0 284rpx; min-width: 0; width: 284rpx; margin:
 .recommendations__skeleton--outfit { margin-top: 48rpx; height: 652rpx; border-radius: var(--panel-radius); }
 .recommendations__updated { margin-top: 42rpx; text-align: center; color: var(--muted); font-size: 20rpx; }
 .recommendations__image-error { color: var(--muted); margin-top: 24rpx; font-size: 22rpx; }
+
+.recommendations__skeleton { animation: skeleton-breathe 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .recommendations__skeleton { animation: none; } }

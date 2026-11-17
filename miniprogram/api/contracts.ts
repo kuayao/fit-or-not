@@ -187,11 +187,17 @@ export const imageJobInputSchema = z.object({
   userPrompt: z.string().trim().max(300, '补充描述最多 300 字').optional(), refreshRecognition: z.boolean().optional(), editAssetId: idSchema.optional()
 }).strict().refine(input => !input.refreshRecognition || Boolean(input.clothingId) && input.kind !== 'cutout', { message: '重新识别需要指定衣物及识别阶段' }).refine(input => !input.editAssetId || Boolean(input.clothingId && input.userPrompt) && input.kind === 'cutout' && !input.refreshRecognition && input.editAssetId !== input.inputAssetId, { message: '修补图片需要指定衣物、不同的原图和处理图，并填写修补意见' });
 export type ImageJobInput = z.infer<typeof imageJobInputSchema>;
+export const promptRefinementInputSchema = z.object({
+  clothingId: idSchema, mode: z.enum(['repair', 'reidentify']), userPrompt: z.string().trim().min(1, '请先填写描述').max(300, '描述最多 300 字')
+}).strict();
+export type PromptRefinementInput = z.infer<typeof promptRefinementInputSchema>;
+export const promptRefinementSchema = z.object({ status: z.enum(['ready', 'needs-detail']), text: z.string().trim().min(1).max(300) }).strict();
+export const imageJobRetrySchema = z.object({ confirmUncertain: z.boolean().optional() }).strict();
 export const jobSchema = z.object({
   importId: idSchema.nullable(), importItemId: idSchema.nullable(),
   id: idSchema, kind: z.string(), status: z.enum(['queued', 'running', 'succeeded', 'failed', 'cancelled']),
   phase: z.string(), inputAssetId: idSchema.nullable(), clothingId: idSchema.nullable(), errorCode: z.string().nullable(), editAssetId: idSchema.nullable(), userPrompt: z.string(), matchesPrimaryAsset: z.boolean(),
-  result: imageJobResultSchema.nullable(), createdAt: z.iso.datetime(),
+  result: imageJobResultSchema.nullable(), createdAt: z.iso.datetime(), providerPending: z.boolean(),
   clothingName: z.string().nullable(), clothingStatus: z.enum(['draft', 'active', 'archived']).nullable()
 });
 export const clothingStatisticsSchema = z.object({ id: idSchema, name: z.string(), primaryAssetId: idSchema, wearCount: z.number().int(), lastWornOn: dateSchema.nullable(), priceCents: z.string().nullable(), costPerWearCents: z.string().nullable() });

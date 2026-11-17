@@ -8,11 +8,12 @@ import type { ClothingTarget, ImageJobResult } from '../../miniprogram/api/contr
 import { config } from './config.js';
 import { pool, transaction } from './db.js';
 import { HttpError } from './errors.js';
-import { COMPLETION_PROMPT, CUTOUT_PROMPT, MASK_PROMPT, RECOGNITION_PROMPT, REPAIR_PROMPT, SET_COVER_PROMPT } from './image-prompts.js';
+import { COMPLETION_PROMPT, RECOGNITION_PROMPT, REPAIR_PROMPT, SET_COVER_PROMPT } from './image-prompts.js';
 import { readClothing, saveClothing } from './clothes.js';
+import { providerFailure } from './provider-failure.js';
 
-type Call = { model: string; promptRevision: string; startedAt: string; delivery: 'submitting' | 'completed' | 'unknown'; requestId?: string; finishedAt?: string };
-export type ImageProcessingState = { recognition?: Call; cutout?: Call; detection?: Call; rawAssetId?: string; clothingVersion?: number; lastAppliedVersion?: number; recognitionApplied?: boolean; cutoutApplied?: boolean; coverAssetId?: string; editAssetId?: string; userPrompt?: string; refreshRecognition?: boolean };
+type Call = { model: string; promptRevision: string; startedAt: string; delivery: 'submitting' | 'completed' | 'unknown' | 'not-sent'; requestId?: string; finishedAt?: string; failure?: ReturnType<typeof providerFailure> };
+export type ImageProcessingState = { recognition?: Call; cutout?: Call; detection?: Call; rawAssetId?: string; clothingVersion?: number; lastAppliedVersion?: number; recognitionApplied?: boolean; cutoutApplied?: boolean; coverAssetId?: string; editAssetId?: string; userPrompt?: string; refreshRecognition?: boolean; confirmedRetryAt?: string };
 export type AiJob = { id: string; user_id: string; input_asset_id: string | null; clothing_id: string | null; kind: string; import_id: string | null; import_item_id: string | null; result: ImageJobResult | null; processing_state: ImageProcessingState };
 const imageResponseSchema = z.object({ data: z.array(z.object({ b64_json: z.string().min(1).optional(), url: z.url().optional() }).refine(value => Boolean(value.b64_json || value.url))).min(1).max(1) });
 const chatResponseSchema = z.object({ choices: z.array(z.object({ message: z.object({ content: z.string().min(1) }) })).min(1) });
@@ -56,7 +57,7 @@ export async function processAiImageJob(job: AiJob) {
     return persistence.tail;
   };
   try {
-    if (!config.NEW_API_KEY) throw new HttpError(503, 'SERVICE_NOT_CONFIGURED', '请在服务端配置 New API 密钥');
+    if (!config.NEW_API_KEY) throw new HttpError(503, 'SERVICE_NOT_CONFIGURED', '图片处理暂不可用，请稍后再试');
     const input = await pool.query<{ storage_key: string; mime_type: string }>("SELECT a.storage_key,a.mime_type FROM media_assets a JOIN users u ON u.id=a.user_id WHERE a.id=$1 AND a.user_id=$2 AND a.status='ready' AND u.status='active'", [job.input_asset_id, job.user_id]);
     if (!input.rows.length) throw new HttpError(404, 'RESOURCE_NOT_FOUND', '输入图片已不可用');
     if (job.clothing_id && state.clothingVersion === undefined) state.clothingVersion = (await readClothing(pool, job.user_id, job.clothing_id)).version;
@@ -67,7 +68,7 @@ export async function processAiImageJob(job: AiJob) {
     const edit = state.editAssetId ? await pool.query<{ storage_key: string; mime_type: string }>('SELECT storage_key,mime_type FROM media_assets WHERE user_id=$1 AND id=$2', [job.user_id, state.editAssetId]) : null;
     const sourceInfo = await sharp(photo).metadata();
     const targetPhoto = target && !state.userPrompt && !state.editAssetId ? await sharp(photo).extract({ left: Math.floor(target.box.left * sourceInfo.width), top: Math.floor(target.box.top * sourceInfo.height), width: Math.min(Math.max(1, Math.round(target.box.width * sourceInfo.width)), sourceInfo.width - Math.floor(target.box.left * sourceInfo.width)), height: Math.min(Math.max(1, Math.round(target.box.height * sourceInfo.height)), sourceInfo.height - Math.floor(target.box.top * sourceInfo.height)) }).png().toBuffer() : null;
-    const maskContent = !state.editAssetId && (!state.rawAssetId && !target && job.kind !== 'set-cover' || state.rawAssetId && state.cutout?.promptRevision === 'mask-v2') ? await sharp(targetPhoto || photo).resize(1024, 1024, { fit: 'inside' }).flatten({ background: '#ffffff' }).png().toBuffer({ resolveWithObject: true }) : null;
+    const maskContent = !state.editAssetId && state.rawAssetId && state.cutout?.promptRevision === 'mask-v2' ? await sharp(photo).resize(1024, 1024, { fit: 'inside' }).flatten({ background: '#ffffff' }).png().toBuffer({ resolveWithObject: true }) : null;
     const maskSource = maskContent ? await sharp(maskContent.data).extend({ left: Math.floor((1024 - maskContent.info.width) / 2), right: Math.ceil((1024 - maskContent.info.width) / 2), top: Math.floor((1024 - maskContent.info.height) / 2), bottom: Math.ceil((1024 - maskContent.info.height) / 2), background: '#ffffff' }).png().toBuffer() : null;
     const baseUrl = config.NEW_API_BASE_URL.replace(/\/$/, '');
     await Promise.all((['recognition', 'cutout'] as const).map(async stage => {
@@ -88,7 +89,7 @@ export async function processAiImageJob(job: AiJob) {
           state.recognition = { model: config.AI_RECOGNITION_MODEL, promptRevision: 'recognition-v6-medium-hint', startedAt: new Date().toISOString(), delivery: 'submitting' };
           await persist('正在识别衣物');
           const response = await fetch(`${baseUrl}/chat/completions`, {
-            method: 'POST', signal, headers: { Authorization: `Bearer ${config.NEW_API_KEY}`, 'Content-Type': 'application/json' },
+            method: 'POST', signal, redirect: 'error', headers: { Authorization: `Bearer ${config.NEW_API_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ model: config.AI_RECOGNITION_MODEL, reasoning_effort: 'medium', response_format: { type: 'json_object' }, max_completion_tokens: 4096, messages: [
               { role: 'system', content: RECOGNITION_PROMPT },
               { role: 'user', content: [
@@ -133,17 +134,17 @@ export async function processAiImageJob(job: AiJob) {
               form.append('image[]', new Blob([new Uint8Array(await readFile(join(config.MEDIA_DIR, edit.rows[0].storage_key)))], { type: edit.rows[0].mime_type }), 'current.png');
               form.append('image[]', new Blob([new Uint8Array(photo)], { type: input.rows[0].mime_type }), 'original');
             }
-            if (!edit) form.set('image', new Blob([new Uint8Array(maskSource || photo)], { type: maskSource ? 'image/png' : input.rows[0].mime_type }), 'clothing');
-            form.set('prompt', edit ? `${REPAIR_PROMPT}\n用户修补意见：${JSON.stringify({ userPrompt: state.userPrompt })}` : maskSource ? `${MASK_PROMPT}\n${state.userPrompt ? `目标线索：${JSON.stringify({ userPrompt: state.userPrompt })}` : '目标是输入中的唯一主衣物。'}模特、人体与背景全部涂黑。` : job.kind === 'set-cover' ? `${SET_COVER_PROMPT}\n目标资料（坐标基于整张原图）：${JSON.stringify(setTargets!.rows.map(item => item.target))}` : target ? `${COMPLETION_PROMPT}\n唯一目标资料（坐标基于整张原图）：${JSON.stringify(state.userPrompt ? { userPrompt: state.userPrompt } : target)}` : CUTOUT_PROMPT);
+            if (!edit) form.set('image', new Blob([new Uint8Array(photo)], { type: input.rows[0].mime_type }), 'clothing');
+            form.set('prompt', edit ? `${REPAIR_PROMPT}\n用户修补意见：${JSON.stringify({ userPrompt: state.userPrompt })}` : job.kind === 'set-cover' ? `${SET_COVER_PROMPT}\n目标资料（坐标基于整张原图）：${JSON.stringify(setTargets!.rows.map(item => item.target))}` : `${COMPLETION_PROMPT}\n${state.userPrompt || target ? `唯一目标资料（坐标基于整张原图）：${JSON.stringify(state.userPrompt ? { userPrompt: state.userPrompt } : target)}` : '目标是照片中唯一明确的主单品，输出一件；连衣裙不可拆成上衣与裙子。'}`);
             form.set('size', '1024x1024');
-            form.set('background', maskSource ? 'opaque' : 'transparent');
+            form.set('background', 'transparent');
             form.set('output_format', 'png');
             form.set('quality', config.AI_CUTOUT_QUALITY);
             form.set('complexity', config.AI_CUTOUT_COMPLEXITY);
             form.set('n', '1');
-            state.cutout = { model: config.AI_CUTOUT_MODEL, promptRevision: edit ? 'repair-v1' : maskSource ? 'mask-v2' : job.kind === 'set-cover' ? 'set-cover-v1' : 'completion-v1', startedAt: new Date().toISOString(), delivery: 'submitting' };
+            state.cutout = { model: config.AI_CUTOUT_MODEL, promptRevision: edit ? 'repair-v1' : job.kind === 'set-cover' ? 'set-cover-v1' : 'completion-v2', startedAt: new Date().toISOString(), delivery: 'submitting' };
             await persist(state.editAssetId ? '正在修补图片' : '正在生成透明图');
-            const response = await fetch(`${baseUrl}/images/edits`, { method: 'POST', headers: { Authorization: `Bearer ${config.NEW_API_KEY}` }, body: form, signal });
+            const response = await fetch(`${baseUrl}/images/edits`, { method: 'POST', redirect: 'error', headers: { Authorization: `Bearer ${config.NEW_API_KEY}` }, body: form, signal });
             state.cutout.requestId = response.headers.get('x-request-id') || response.headers.get('x-oneapi-request-id') || undefined;
             const body = await readLimited(response, 30 * 1024 * 1024);
             state.cutout.delivery = 'completed';
@@ -208,11 +209,17 @@ export async function processAiImageJob(job: AiJob) {
         }
         result.steps[stage] = { status: 'succeeded' };
       } catch (error) {
-        if (state[stage]?.delivery === 'submitting') state[stage].delivery = 'unknown';
+        const failure = providerFailure(error);
+        const call = state[stage];
+        if (call) {
+          call.failure = failure;
+          if (call.delivery === 'submitting') call.delivery = !call.requestId && failure.notSent ? 'not-sent' : 'unknown';
+        }
+        console.error(JSON.stringify({ event: 'ai_provider_failed', jobId: job.id, stage, requestId: call?.requestId, delivery: call?.delivery, ...failure }));
         result.steps[stage] = {
           status: 'failed',
-          errorCode: state[stage]?.delivery === 'unknown' ? 'PROVIDER_PENDING' : error instanceof HttpError ? error.code : error instanceof z.ZodError || error instanceof SyntaxError ? 'INVALID_MODEL_RESPONSE' : signal.aborted ? 'JOB_TIMEOUT' : 'IMAGE_PROCESSING_FAILED',
-          message: state[stage]?.delivery === 'unknown' ? '本次调用结果尚未确认，请核对 New API 调用记录后再处理' : error instanceof HttpError ? error.message : error instanceof z.ZodError || error instanceof SyntaxError ? '模型返回的资料格式不符合约定，请检查模型能力' : '本阶段未能完成，已保留其他处理结果'
+          errorCode: call?.delivery === 'unknown' ? 'PROVIDER_PENDING' : call?.delivery === 'not-sent' ? 'PROVIDER_CONNECTION_FAILED' : error instanceof HttpError ? error.code : error instanceof z.ZodError || error instanceof SyntaxError ? 'INVALID_MODEL_RESPONSE' : signal.aborted ? 'JOB_TIMEOUT' : 'IMAGE_PROCESSING_FAILED',
+          message: call?.delivery === 'unknown' ? '处理未完成，请重试' : call?.delivery === 'not-sent' ? '连接模型服务失败，请重试' : error instanceof HttpError ? error.message : error instanceof z.ZodError || error instanceof SyntaxError ? '模型返回的资料格式不符合约定，请检查模型能力' : '本阶段未能完成，已保留其他处理结果'
         };
       }
       if (state[stage]) state[stage].finishedAt = new Date().toISOString();
@@ -254,7 +261,7 @@ export async function processAiImageJob(job: AiJob) {
       await client.query("UPDATE image_jobs SET status=CASE WHEN cancel_requested THEN 'cancelled' WHEN $2 THEN 'succeeded' ELSE 'failed' END,phase=$3,result=$4,processing_state=$5,error_code=$6,model_revision=$7,finished_at=now(),lease_expires_at=NULL WHERE id=$1 AND status='running'", [job.id, usable, controller.signal.aborted ? '处理已结束，已有结果已保留' : complete ? '处理完成，待核对' : usable ? '部分处理完成，待核对' : '处理未完成，可手动编辑', JSON.stringify(result), JSON.stringify(appliedState), usable ? null : errors[0]?.errorCode || 'IMAGE_PROCESSING_FAILED', config.AI_CUTOUT_MODEL]);
     });
   } catch (error) {
-    result.canRetry = !Object.values(state).some(call => typeof call === 'object' && call.delivery !== 'completed');
+    result.canRetry = !Object.values(state).some(call => typeof call === 'object' && (call.delivery === 'submitting' || call.delivery === 'unknown'));
     await pool.query("UPDATE image_jobs SET status=CASE WHEN cancel_requested THEN 'cancelled' ELSE 'failed' END,phase='处理未完成',result=$2,processing_state=$3,error_code=$4,finished_at=now(),lease_expires_at=NULL WHERE id=$1 AND status='running'", [job.id, JSON.stringify(result), JSON.stringify(state), error instanceof HttpError ? error.code : 'IMAGE_PROCESSING_FAILED']);
     console.error(JSON.stringify({ event: 'ai_image_job_failed', jobId: job.id, errorType: error instanceof Error ? error.name : 'UnknownError' }));
   } finally { clearInterval(heartbeat); }

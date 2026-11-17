@@ -46,7 +46,7 @@
       <view class="city-result__content"><view class="city-result__name">{{item.name}}</view><view class="city-result__path">{{item.path}}</view></view><image wx:if="{{selectedCityId === item.id}}" class="icon icon--small" src="/assets/icons/check.svg" mode="aspectFit" />
     </button>
   </view>
-  <view wx:if="{{cityLoading}}" class="state">正在搜索…</view>
+  <app-loading wx:if="{{cityLoading}}" text="正在搜索" />
   <view wx:if="{{cityError}}" class="error" bindtap="onMoreCities">{{cityError}} · 点击重试</view>
   <view wx:if="{{citySearched && !cities.length && !cityLoading && !cityError}}" class="state">没有找到相关地点</view>
   <t-button wx:if="{{cities.length < cityTotal && !cityError}}" t-class="ui-button" class="button-block" block loading="{{cityLoading}}" disabled="{{cityLoading}}" bind:tap="onMoreCities">加载更多</t-button>

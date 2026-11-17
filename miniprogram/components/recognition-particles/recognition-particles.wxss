@@ -1,2 +1,7 @@
+@import "../../styles/clothing-processing.wxss";
+
 :host { position: absolute; inset: 0; pointer-events: none; }
-.recognition-particles { display: block; width: 100%; height: 100%; }
+.clothing-processing--paused .clothing-processing__scan,
+.clothing-processing--paused .clothing-processing__star,
+.clothing-processing--paused .clothing-processing__satellite,
+.clothing-processing--paused .clothing-processing__light { animation-play-state: paused; }

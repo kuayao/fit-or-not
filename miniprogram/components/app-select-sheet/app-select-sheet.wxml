@@ -1,5 +1,5 @@
 <app-sheet visible="{{visible}}" title="{{title}}" bind:close="onClose">
-  <view wx:if="{{loading}}" class="state">正在加载选项…</view>
+  <app-loading wx:if="{{loading}}" text="正在加载选项" />
   <view wx:elif="{{error}}" class="choice-error"><view class="error">{{error}}</view><t-button t-class="ui-button" block bind:tap="onRetry">重新加载</t-button></view>
   <view wx:elif="{{!items.length}}" class="state">{{emptyText}}</view>
   <scroll-view wx:else class="choice-scroll" scroll-y>

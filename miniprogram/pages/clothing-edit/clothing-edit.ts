@@ -1,18 +1,20 @@
 import { refreshExpiredImage } from '../../utils/refresh-image';
 import { z } from 'zod';
-import { listCategories, listTags, listClothingOptions, getClothing, importClothing, updateClothing, deleteClothing, uploadPhoto, imageUrls, getCapabilities, createImageJob, getImageJob } from '../../api/client';
-import { idSchema, clothingInputSchema, imageJobInputSchema, newSubcategorySchema, clothingOptionKindSchema, colors, seasons, seasonLabels, patterns, patternLabels } from '../../api/contracts';
+import { listCategories, listTags, listClothingOptions, getClothing, importClothing, updateClothing, deleteClothing, uploadPhoto, imageUrls, getCapabilities, createImageJob, getImageJob, retryImageJob, refineImagePrompt } from '../../api/client';
+import { idSchema, clothingInputSchema, imageJobInputSchema, promptRefinementInputSchema, newSubcategorySchema, clothingOptionKindSchema, colors, seasons, seasonLabels, patterns, patternLabels } from '../../api/contracts';
 import type { Clothing, Category, ClothingOption, ClothingOptionKind, ImageJobInput } from '../../api/contracts';
 import { ApiError, RequestScope, errorMessage, requireSession, requestKey } from '../../utils/request';
 import { money, currentDate } from '../../utils/format';
 import type { SelectDetail } from '../../components/app-select-sheet/app-select-sheet';
 import type { DateDetail } from '../../components/app-date-sheet/app-date-sheet';
 import { COLOR_OPTIONS } from '../../config/colors';
+import { prepareImageJobRetry } from '../../utils/image-job-retry';
+import type { ImageJobRetryAttempt } from '../../utils/image-job-retry';
 
 const subcategoryData = { subcategorySuggestionVisible: false, subcategorySuggestionName: '', subcategoryDecision: '', subcategoryError: '' };
 const processData = {
-  ...subcategoryData, processing: false, processStatus: '', processError: '', processedAssetId: '', processedImageUrl: '', compareOpen: false,
-  processOpen: false, processPrompt: '', processMode: 'reidentify', processLocked: false
+  ...subcategoryData, processing: false, processQueued: false, processStatus: '', processError: '', processedAssetId: '', processedImageUrl: '', compareOpen: false,
+  processOpen: false, processPrompt: '', processMode: 'reidentify', processLocked: false, processRetryId: '', processNeedsConfirmation: false, promptRefining: false
 };
 type OptionGroup = {
   kind: ClothingOptionKind; field: 'brandId' | 'sizeId' | 'materialId'; label: string;
@@ -21,7 +23,8 @@ type OptionGroup = {
 
 Page({
   processAttempt: null as { key: string; input: ImageJobInput } | null,
-  scope: new RequestScope(), clothingId: '', version: 0, replacePrimary: false, pendingPhotos: Array<{ path: string; assetId: string; key: string }>(),
+  retryAttempts: new Map<string, ImageJobRetryAttempt>(),
+  scope: new RequestScope(), clothingId: '', version: 0, dirty: false, replacePrimary: false, pendingPhotos: Array<{ path: string; assetId: string; key: string }>(),
   clothingOptions: Array<ClothingOption>(), processJobId: '', processTimer: 0, processPolling: false, visible: true, refreshOptions: false,
   data: {
     ...processData, importId: '', singleImport: false, setId: '', setName: '', originalAssetId: '', originalImageUrl: '',
@@ -40,7 +43,7 @@ Page({
     imageProcessingAvailable: false, imageProcessingReason: '', status: 'draft', today: currentDate()
   },
   onLoad(options) {
-    this.scope = new RequestScope();
+    this.scope = new RequestScope(); this.retryAttempts = new Map();
     if (!requireSession()) return;
     const input = z.object({ id: idSchema.optional() }).parse(options);
     if (!input.id) { wx.redirectTo({ url: '/pages/clothing-import/clothing-import' }); return; }
@@ -57,7 +60,7 @@ Page({
   onImageError(event: WechatMiniprogram.ImageError) {
     void refreshExpiredImage(this.scope, event, (oldUrl, url) => { this.setData({ imageUrl: this.data.imageUrl === oldUrl ? url : this.data.imageUrl, originalImageUrl: this.data.originalImageUrl === oldUrl ? url : this.data.originalImageUrl, processedImageUrl: this.data.processedImageUrl === oldUrl ? url : this.data.processedImageUrl, detailPhotos: this.data.detailPhotos.map(item => ({ ...item, imageUrl: item.imageUrl === oldUrl ? url : item.imageUrl })), 'moreDraft.detailPhotos': this.data.moreDraft.detailPhotos.map(item => ({ ...item, imageUrl: item.imageUrl === oldUrl ? url : item.imageUrl })) }); }, message => this.setData({ error: message }));
   },
-  onUnload() { this.visible = false; clearTimeout(this.processTimer); this.scope.close(); },
+  onUnload() { this.visible = false; clearTimeout(this.processTimer); this.scope.close(); wx.disableAlertBeforeUnload(); },
   onMembership() { if (!this.data.busy && !this.data.processing) wx.navigateTo({ url: this.data.setId ? `/pages/clothing-set/clothing-set?id=${this.data.setId}` : `/pages/clothing-set/clothing-set?clothingId=${this.clothingId}` }); },
   onTasks() { wx.navigateTo({ url: '/pages/image-jobs/image-jobs' }); },
   onRetry() { void this.load(); },
@@ -67,7 +70,12 @@ Page({
     this.renderOptions();
   },
   onCloseMore() { if (!this.data.busy) this.setData({ showMore: false }); },
-  onConfirmMore() { if (!this.data.busy && !this.data.optionsLoading && !this.data.optionsError) this.setData({ ...this.data.moreDraft, showMore: false }); },
+  onConfirmMore() {
+    if (this.data.busy || this.data.optionsLoading || this.data.optionsError) return;
+    if ((['brandId', 'sizeId', 'materialId', 'notes', 'purchasedOn', 'itemType', 'colorDescription', 'pattern', 'visibleFeaturesText', 'tags', 'detailPhotos'] as const)
+      .some(field => JSON.stringify(this.data.moreDraft[field]) !== JSON.stringify(this.data[field]))) this.markDirty();
+    this.setData({ ...this.data.moreDraft, showMore: false });
+  },
   onMoreInput(event: WechatMiniprogram.Input) {
     const field = z.enum(['notes', 'itemType', 'colorDescription', 'visibleFeaturesText']).parse(event.currentTarget.dataset.field);
     this.setData({ [`moreDraft.${field}`]: event.detail.value });
@@ -104,8 +112,9 @@ Page({
       return;
     }
     const id = event.detail.id;
-    if (this.data.choice === 'sub-category') { this.setData({ ...subcategoryData, categoryId: id, subCategoryIndex: this.data.subCategories.findIndex(item => item.id === id), choice: '', fieldError: '' }); return; }
+    if (this.data.choice === 'sub-category') { if (id !== this.data.categoryId || this.data.subcategorySuggestionVisible) this.markDirty(); this.setData({ ...subcategoryData, categoryId: id, subCategoryIndex: this.data.subCategories.findIndex(item => item.id === id), choice: '', fieldError: '' }); return; }
     if (id === this.data.rootCategoryId) { this.setData({ choice: '' }); return; }
+    this.markDirty();
     const category = this.data.rootCategories.find(item => item.id === id)!;
     const clearSize = this.data.sizeKind !== category.sizeKind;
     this.setData({ ...subcategoryData, rootCategoryIndex: this.data.rootCategories.findIndex(item => item.id === id), rootCategoryId: id, categoryId: id, subCategoryIndex: 0, choice: '', fieldError: '', sizeKind: category.sizeKind,
@@ -114,10 +123,13 @@ Page({
     this.renderOptions();
   },
   onSubcategoryName(event: WechatMiniprogram.Input) {
-    if (!this.data.busy) this.setData({ subcategorySuggestionName: event.detail.value, subcategoryDecision: '', subcategoryError: '' });
+    if (this.data.busy) return;
+    if (event.detail.value !== this.data.subcategorySuggestionName) this.markDirty();
+    this.setData({ subcategorySuggestionName: event.detail.value, subcategoryDecision: '', subcategoryError: '' });
   },
   onSubcategoryDecision(event: WechatMiniprogram.TouchEvent) {
     if (this.data.busy) return;
+    this.markDirty();
     this.setData({ subcategoryDecision: z.enum(['create', 'skip']).parse(event.currentTarget.dataset.decision), subcategoryError: '' });
   },
   onManageOptions(event: WechatMiniprogram.TouchEvent) {
@@ -130,9 +142,10 @@ Page({
   onRetryOptions() { void this.loadOptions(true); },
   onOpenSeason() { this.setData({ seasonOpen: true, seasonDraft: this.data.seasonOptions.map(item => ({ ...item })) }); },
   onCloseSeason() { this.setData({ seasonOpen: false }); },
-  onConfirmSeason() { this.setData({ seasonOpen: false, seasonOptions: this.data.seasonDraft, seasonSummary: this.data.seasonDraft.filter(item => item.selected).map(item => item.label).join(' / ') }); },
+  onConfirmSeason() { if (this.data.seasonDraft.some((item, index) => item.selected !== this.data.seasonOptions[index].selected)) this.markDirty(); this.setData({ seasonOpen: false, seasonOptions: this.data.seasonDraft, seasonSummary: this.data.seasonDraft.filter(item => item.selected).map(item => item.label).join(' / ') }); },
   onInput(event: WechatMiniprogram.Input) {
     const field = z.enum(['name', 'price']).parse(event.currentTarget.dataset.field);
+    if (event.detail.value !== this.data[field]) this.markDirty();
     this.setData({ [field]: event.detail.value });
   },
   onOpenDate() { if (!this.data.busy) this.setData({ choice: 'date', choiceTitle: '购买日期' }); },
@@ -140,6 +153,7 @@ Page({
   onClearDate() { this.setData({ 'moreDraft.purchasedOn': '' }); },
   onColor(event: WechatMiniprogram.TouchEvent) {
     const value = z.enum(colors).parse(event.currentTarget.dataset.value);
+    this.markDirty();
     this.setData({ colorOptions: this.data.colorOptions.map(item => ({ ...item, selected: item.value === value ? !item.selected : item.selected })) });
   },
   onSeason(event: WechatMiniprogram.TouchEvent) {
@@ -158,6 +172,7 @@ Page({
       if (!this.scope.active) return;
       this.replacePrimary = Boolean(this.clothingId);
       this.pendingPhotos = result.tempFiles.map(file => ({ path: file.tempFilePath, assetId: '', key: requestKey() }));
+      this.markDirty();
       await this.uploadPending();
     } catch (error) {
       const cancellation = z.object({ errMsg: z.string() }).safeParse(error);
@@ -178,6 +193,7 @@ Page({
       if (!this.scope.active) return;
       this.replacePrimary = Boolean(this.clothingId);
       this.pendingPhotos = [{ path: cropped.tempFilePath, assetId: '', key: requestKey() }];
+      this.markDirty();
       this.setData({ busy: false });
       await this.uploadPending();
     } catch (error) {
@@ -214,26 +230,65 @@ Page({
   onCloseCompare() { this.setData({ compareOpen: false }); },
   onUseImage(event: WechatMiniprogram.TouchEvent) {
     const variant = z.enum(['original', 'processed']).parse(event.currentTarget.dataset.variant);
+    if (this.data.primaryAssetId !== (variant === 'original' ? this.data.originalAssetId : this.data.processedAssetId)) this.markDirty();
     this.setData({ primaryAssetId: variant === 'original' ? this.data.originalAssetId : this.data.processedAssetId,
       imageUrl: variant === 'original' ? this.data.originalImageUrl : this.data.processedImageUrl, compareOpen: false });
   },
   onProcess() {
     if (this.data.busy || this.data.processing || !this.clothingId || !this.data.imageProcessingAvailable) return;
+    if (this.data.processNeedsConfirmation) { void this.onRetryProcess(); return; }
     if (this.processAttempt) { this.setData({ processOpen: true }); return; }
     const mode = this.data.processedAssetId ? 'repair' : 'reidentify';
     this.setData({ processOpen: true, processMode: mode, processPrompt: mode === this.data.processMode ? this.data.processPrompt : '', processError: '', fieldError: '' });
   },
-  onCloseProcess() { if (!this.data.busy) this.setData({ processOpen: false }); },
+  onCloseProcess() { if (!this.data.busy && !this.data.promptRefining) this.setData({ processOpen: false }); },
   onPreviewProcessImage(event: WechatMiniprogram.TouchEvent) { wx.previewImage({ urls: [z.string().min(1).parse(event.currentTarget.dataset.url)] }); },
   onProcessMode(event: WechatMiniprogram.TouchEvent) {
-    if (this.data.busy || this.processAttempt) return;
+    if (this.data.busy || this.data.promptRefining || this.processAttempt) return;
     const mode = z.enum(['repair', 'reidentify']).parse(event.currentTarget.dataset.mode);
     if (mode === 'repair' && !this.data.processedAssetId) return;
     this.setData({ processMode: mode, processPrompt: '', processError: '' });
   },
   onProcessPrompt(event: WechatMiniprogram.Input) { this.setData({ processPrompt: event.detail.value }); },
+  async onRefinePrompt() {
+    if (this.data.busy || this.data.promptRefining || this.data.processLocked) return;
+    const input = promptRefinementInputSchema.safeParse({ clothingId: this.clothingId, mode: this.data.processMode, userPrompt: this.data.processPrompt });
+    if (!input.success) { this.setData({ processError: input.error.issues[0].message }); return; }
+    this.setData({ promptRefining: true, processError: '' });
+    try {
+      const result = await refineImagePrompt(this.scope, input.data);
+      if (!this.scope.active) return;
+      if (result.data.status === 'needs-detail') {
+        this.setData({ promptRefining: false });
+        wx.showModal({ title: this.data.processMode === 'repair' ? '请说明修补部位' : '请补充目标描述', content: result.data.text, showCancel: false, confirmText: '继续填写' });
+        return;
+      }
+      this.setData({ promptRefining: false, processPrompt: result.data.text });
+      wx.showToast({ title: result.data.text === input.data.userPrompt ? '描述已足够明确' : '描述已优化', icon: 'none' });
+    } catch (error) {
+      if (!this.scope.active) return;
+      this.setData({ promptRefining: false, processError: errorMessage(error) });
+    }
+  },
+  async onRetryProcess() {
+    if (this.data.busy || this.data.processing || !this.data.processRetryId) return;
+    const id = this.data.processRetryId;
+    this.setData({ busy: true, processError: '' });
+    try {
+      const attempt = this.retryAttempts.get(id) || await prepareImageJobRetry(this.scope, id);
+      if (!attempt) { this.setData({ busy: false }); return; }
+      this.retryAttempts.set(id, attempt);
+      await retryImageJob(this.scope, id, attempt.key, attempt.confirmUncertain);
+      this.retryAttempts.delete(id);
+      this.setData({ busy: false });
+      await this.loadClothing();
+    } catch (error) {
+      if (error instanceof ApiError && !['NETWORK_ERROR', 'REQUEST_TIMEOUT', 'INVALID_RESPONSE'].includes(error.code)) this.retryAttempts.delete(id);
+      const message = errorMessage(error); if (message) this.setData({ busy: false, processError: message });
+    }
+  },
   async onConfirmProcess() {
-    if (this.data.busy || this.data.processing || !this.clothingId || !this.data.imageProcessingAvailable) return;
+    if (this.data.busy || this.data.promptRefining || this.data.processing || !this.clothingId || !this.data.imageProcessingAvailable) return;
     const jobInput = imageJobInputSchema.safeParse({ inputAssetId: this.data.originalAssetId, clothingId: this.clothingId, userPrompt: this.data.processPrompt, ...(this.data.processMode === 'repair' ? { kind: 'cutout', editAssetId: this.data.processedAssetId } : { kind: 'process', refreshRecognition: true }) });
     if (!jobInput.success) { this.setData({ processError: jobInput.error.issues[0].message }); return; }
     const input = this.getInput();
@@ -243,13 +298,15 @@ Page({
       if (!this.processAttempt) {
         const saved = await updateClothing(this.scope, this.clothingId, { ...input, version: this.version });
         this.version = saved.data.version;
+        this.dirty = false;
+        wx.disableAlertBeforeUnload();
         this.processAttempt = { input: jobInput.data, key: requestKey() };
         this.setData({ processLocked: true });
       }
       const result = await createImageJob(this.scope, this.processAttempt.input, this.processAttempt.key);
       this.processAttempt = null;
       this.processJobId = result.data.id;
-      this.setData({ processing: true, busy: false, processOpen: false, processLocked: false, processPrompt: result.data.userPrompt, showMore: false, seasonOpen: false, compareOpen: false, processStatus: '正在排队，可离开页面稍后核对' });
+      this.setData({ processing: true, processQueued: result.data.status === 'queued', busy: false, processOpen: false, processLocked: false, processPrompt: result.data.userPrompt, showMore: false, seasonOpen: false, compareOpen: false, processStatus: result.data.phase });
       wx.setNavigationBarTitle({ title: this.data.processMode === 'repair' ? '修补图片' : '识别图片' });
       await this.pollProcess();
     } catch (error) {
@@ -266,7 +323,7 @@ Page({
       const job = (await getImageJob(this.scope, this.processJobId)).data;
       if (!this.visible) return;
       if (job.status === 'queued' || job.status === 'running') {
-        this.setData({ processStatus: job.status === 'queued' ? '正在排队，稍后开始处理' : job.phase || '正在抠图与识别' });
+        this.setData({ processQueued: job.status === 'queued', processStatus: job.phase || '正在处理图片', processError: '' });
         this.processTimer = setTimeout(() => { void this.pollProcess(); }, 2000);
         return;
       }
@@ -299,6 +356,8 @@ Page({
     if (!answer.confirm) { this.setData({ busy: false }); return; }
     try {
       await deleteClothing(this.scope, this.clothingId);
+      this.dirty = false;
+      wx.disableAlertBeforeUnload();
       if (this.data.importId) { wx.navigateBack(); return; }
       wx.reLaunch({ url: '/pages/wardrobe/wardrobe' });
     } catch (error) { const message = errorMessage(error); if (message) this.setData({ error: message, busy: false }); }
@@ -317,11 +376,14 @@ Page({
       const result = await updateClothing(this.scope, this.clothingId, { ...input, ...(newSubcategory?.success ? { newSubcategory: newSubcategory.data } : {}), status: this.data.importId && !this.data.singleImport ? 'draft' : this.data.status === 'archived' ? 'archived' : 'active', version: this.version });
       this.version = result.data.version;
       this.clothingId = result.data.id;
+      this.dirty = false;
+      wx.disableAlertBeforeUnload();
       this.setData({ busy: false });
       if (result.data.importId) { wx.navigateBack(); return; }
       wx.redirectTo({ url: `/pages/clothing-detail/clothing-detail?id=${result.data.id}` });
     } catch (error) { const message = errorMessage(error); if (message) this.setData({ error: message, busy: false }); }
   },
+  markDirty() { if (this.dirty) return; this.dirty = true; wx.enableAlertBeforeUnload({ message: '衣物资料尚未保存，离开后本次修改会丢失' }); },
   async load() {
     this.setData({ loading: true, error: '' });
     try {
@@ -389,7 +451,9 @@ Page({
       subcategorySuggestionVisible: Boolean(suggestions?.subcategoryName && !imageJob?.result?.subcategoryReviewed && suggestions.rootCategoryId === this.data.rootCategoryId && suggestions.categoryId === suggestions.rootCategoryId && result.data.categoryId === suggestions.rootCategoryId),
       subcategorySuggestionName: suggestions?.subcategoryName || '',
       processedAssetId, processedImageUrl: processedAssetId ? urls[processedAssetId] : '',
-      processError: job?.result?.steps ? Object.values(job.result.steps).filter(step => step.status === 'failed' || step.skipReason === 'retake').map(step => step.message).filter(Boolean).join('；') : '' });
+      processRetryId: imageJob && (imageJob.providerPending || imageJob.result?.canRetry) && imageJob.status !== 'queued' && imageJob.status !== 'running' ? imageJob.id : '',
+      processNeedsConfirmation: Boolean(imageJob?.providerPending),
+      processError: job?.result?.steps ? Object.values(job.result.steps).filter(step => step.status === 'failed' || step.skipReason === 'retake').map(step => step.errorCode === 'PROVIDER_PENDING' ? '处理未完成，请重试' : step.message).filter(Boolean).join('；') : '' });
     if (this.data.processing && imageJob?.editAssetId) wx.setNavigationBarTitle({ title: '修补图片' });
     if (this.data.processing && this.visible && !this.processPolling) void this.pollProcess();
   },
@@ -400,6 +464,7 @@ Page({
     const rootCategoryId = category?.parentId || category?.id || '';
     const subCategories = rootCategoryId ? [{ id: rootCategoryId, name: '暂不细分' }, ...this.data.categories.filter(item => item.parentId === rootCategoryId)] : [];
     this.setData({ ...processData, importId: clothing.importId || '', singleImport: clothing.singleImport, setId: clothing.setId || '', setName: clothing.clothingSet?.name || '', sizeKind: category?.sizeKind || 'clothing-size', sizeHint: '', rootCategoryId, rootCategoryIndex: Math.max(0, this.data.rootCategories.findIndex(item => item.id === rootCategoryId)), subCategories, subCategoryIndex: Math.max(0, subCategories.findIndex(item => item.id === clothing.categoryId)), processing: clothing.processingStatus === 'queued' || clothing.processingStatus === 'running', processStatus: clothing.processingPhase || '', originalAssetId: clothing.primaryAssetId, originalImageUrl: imageUrl, seasonSummary: clothing.seasons.map(value => seasonLabels[seasons.indexOf(value)]).join(' / '), favorite: clothing.favorite, name: clothing.name, categoryId: clothing.categoryId || '',
+      processQueued: clothing.processingStatus === 'queued',
       itemType: clothing.itemType || '', colorDescription: clothing.colorDescription || '', pattern: clothing.pattern || '', patternIndex: this.data.patternOptions.findIndex(item => item.value === (clothing.pattern || '')), visibleFeaturesText: clothing.visibleFeatures.join('、'),
       primaryAssetId: clothing.primaryAssetId, imageUrl, brandId: clothing.brandId || '', sizeId: clothing.sizeId || '', materialId: clothing.materialId || '', price: clothing.priceCents === null ? '' : money(clothing.priceCents), purchasedOn: clothing.purchasedOn || '', notes: clothing.notes, status: clothing.status,
       colorOptions: this.data.colorOptions.map(item => ({ ...item, selected: clothing.colors.includes(item.value) })), seasonOptions: this.data.seasonOptions.map(item => ({ ...item, selected: clothing.seasons.includes(item.value) })), tags: this.data.tags.map(item => ({ ...item, selected: clothing.tagIds.includes(item.id) })) });

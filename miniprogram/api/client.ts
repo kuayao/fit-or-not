@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import { queryString, ApiError, CancelledRequest } from '../utils/request';
 import type { RequestScope } from '../utils/request';
-import type { ClothingOptionKind, ClothingBatchInput, ImageJobInput } from './contracts';
+import type { ClothingOptionKind, ClothingBatchInput, ImageJobInput, PromptRefinementInput } from './contracts';
 import { categorySchema, tagSchema, clothingOptionSchema, clothingSchema, outfitSchema, outfitCategorySchema, wearSchema, packingSchema, mediaSchema, signedUrlSchema, userSchema, capabilitiesSchema, paginationSchema, jobSchema, statisticsSchema, clothingStatisticsSchema, weatherSchema, weatherLocationSchema, exportSchema, loginSchema } from './contracts';
 import { clothingImportSchema, clothingImportDetailSchema, clothingSetSchema, recommendationSchema, recommendationOutfitSchema } from './contracts';
+import { promptRefinementSchema } from './contracts';
 
 const result = <T>(schema: z.ZodType<T>) => z.object({ data: schema });
 const list = <T>(schema: z.ZodType<T>) => z.object({ data: z.array(schema), pagination: paginationSchema });
+export const refineImagePrompt = (scope: RequestScope, input: PromptRefinementInput) => scope.request('POST', '/image-prompt-refinements', result(promptRefinementSchema), input);
 export const loginWithWechat = (scope: RequestScope, code: string) => scope.request('POST', '/auth/wechat', result(loginSchema), { code });
 export const redeemInvitation = (scope: RequestScope, registrationToken: string, invitationCode: string) => scope.request('POST', '/auth/invitations/redeem', result(loginSchema), { registrationToken, invitationCode });
 export const logout = (scope: RequestScope) => scope.request('POST', '/auth/logout', z.undefined());
@@ -80,7 +82,7 @@ export const listImageJobs = (scope: RequestScope, page: number) => scope.reques
 export const getImageJob = (scope: RequestScope, id: string) => scope.request('GET', `/image-jobs/${id}`, result(jobSchema));
 export const createImageJob = (scope: RequestScope, input: ImageJobInput, key: string) => scope.request('POST', '/image-jobs', result(jobSchema), input, key);
 export const cancelImageJob = (scope: RequestScope, id: string) => scope.request('POST', `/image-jobs/${id}/cancel`, result(jobSchema));
-export const retryImageJob = (scope: RequestScope, id: string, key: string) => scope.request('POST', `/image-jobs/${id}/retry`, result(jobSchema), {}, key);
+export const retryImageJob = (scope: RequestScope, id: string, key: string, confirmUncertain = false) => scope.request('POST', `/image-jobs/${id}/retry`, result(jobSchema), { confirmUncertain }, key);
 export const getCapabilities = (scope: RequestScope) => scope.request('GET', '/capabilities', result(capabilitiesSchema));
 export type WeatherLocation = { source: 'ip' } | { cityCode: string } | { latitude: number; longitude: number };
 export const getWeather = (scope: RequestScope, location: WeatherLocation, refresh = false) => scope.request('GET', `/weather?${queryString({ ...location, refresh: refresh ? 'true' : undefined })}`, result(weatherSchema));

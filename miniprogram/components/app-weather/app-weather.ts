@@ -45,6 +45,7 @@ Component({
       state.cityGeneration++;
       state.scope.close();
       this.setData({ loading: false, cityLoading: false, cityOpen: false });
+      this.triggerEvent('loadingchange', { loading: false });
     },
     show() {
       const state = requests.get(this)!;
@@ -97,6 +98,7 @@ Component({
       const state = requests.get(this)!;
       const generation = ++state.generation;
       this.setData({ loading: true });
+      this.triggerEvent('loadingchange', { loading: true });
       if (!state.query) {
         wx.getLocation({
           type: 'gcj02',
@@ -130,6 +132,7 @@ Component({
           forecast: result.data.forecast.map((day, index) => ({ ...day, label: ['今天', '明天', '后天'][index], icon: weatherIcon(day.textDay) }))
         });
         this.triggerEvent('weatherchange', { cityCode: result.data.cityCode });
+        this.triggerEvent('loadingchange', { loading: false });
       } catch (error) {
         if (!state.scope.active || generation !== state.generation) return;
         if (error instanceof ApiError && error.code === 'LOCATION_UNAVAILABLE') {
@@ -142,10 +145,12 @@ Component({
           if ('source' in query) {
             state.query = null;
             this.setData({ cityLabel: '选择城市', loading: false, stale: this.data.loaded });
+            this.triggerEvent('loadingchange', { loading: false });
             return;
           }
         }
         this.setData({ loading: false, stale: this.data.loaded });
+        this.triggerEvent('loadingchange', { loading: false });
       }
     }
   }

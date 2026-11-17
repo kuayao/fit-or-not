@@ -1,5 +1,5 @@
 <view class="page review-page {{record && record.itemCount && record.status !== 'cancelled' ? 'review-page--editable' : ''}}">
-  <view wx:if="{{loading && !record}}" class="state">正在加载…</view>
+  <app-loading wx:if="{{loading && !record}}" variant="detail" text="正在加载" />
   <view wx:if="{{error}}" class="error" bindtap="onRetry">{{error}}</view>
   <view wx:if="{{record}}" class="review-sheet">
     <view class="review-overview">
@@ -19,14 +19,13 @@
     </view>
     <view wx:if="{{saveAsSet && coverMessage && record.status !== 'cancelled'}}" class="review-progress review-cover-progress">
       <text class="grow">{{coverMessage}}</text>
-      <view wx:if="{{coverRetryId}}" class="review-cover-retry"><t-button class="button-block" t-class="review-cover-retry__button" block theme="primary" size="small" data-id="{{coverRetryId}}" disabled="{{busy || confirmLocked || record.pending}}" bind:tap="onRetryJob">重试整套图</t-button></view>
+      <view wx:if="{{coverRetryId}}" class="review-cover-retry"><t-button class="button-block" t-class="review-cover-retry__button" block theme="primary" size="small" data-id="{{coverRetryId}}" disabled="{{busy || confirmLocked || record.pending}}" bind:tap="onRetryJob">{{coverProviderPending ? '重新生成整套图' : '重试整套图'}}</t-button></view>
     </view>
     <view wx:if="{{record.itemCount && record.status !== 'cancelled'}}" class="review-set-option">
       <text>保存为套装</text>
       <switch class="review-set-option__switch" color="#426E91" checked="{{saveAsSet}}" disabled="{{busy || confirmLocked}}" bindchange="onSet" />
     </view>
 
-    <view wx:if="{{record.pending && record.itemCount}}" class="notice review-notice">正在处理，可稍后回来核对</view>
     <view wx:if="{{record.status === 'cancelled'}}" class="notice review-notice">录入已取消</view>
     <view wx:if="{{record.itemCount}}" class="review-heading">
       <view class="review-heading__title">单品<text class="review-heading__count">{{items.length}} 件</text></view>
@@ -36,11 +35,12 @@
       <image class="review-recovery__icon" src="/assets/icons/{{record.pending ? 'sparkles' : 'image'}}.svg" mode="aspectFit" />
       <view class="review-recovery__title">{{record.pending ? '正在定位衣物' : '识别未完成'}}</view>
       <view class="review-recovery__message">{{locateMessage}}</view>
-      <view wx:if="{{!record.pending}}" class="review-recovery__action"><t-button class="button-block" t-class="ui-button" block theme="primary" disabled="{{busy || addPending}}" bind:tap="onRedetect">补充描述，重新识别</t-button></view>
+      <view wx:if="{{!record.pending && locateRetryId}}" class="review-recovery__action"><t-button class="button-block" t-class="ui-button" block theme="primary" data-id="{{locateRetryId}}" disabled="{{busy || addPending}}" bind:tap="onRetryJob">重新识别</t-button></view>
+      <view wx:if="{{!record.pending && !locateRetryId}}" class="review-recovery__action"><t-button class="button-block" t-class="ui-button" block theme="primary" disabled="{{busy || addPending}}" bind:tap="onRedetect">补充描述，重新识别</t-button></view>
       <view wx:if="{{!record.pending}}" class="review-recovery__action"><t-button class="button-block" t-class="ui-button" block variant="outline" disabled="{{busy}}" bind:tap="onAddItem">{{addPending ? '重试补录' : '换一张单品照片补录'}}</t-button></view>
     </view>
     <view class="review-grid">
-      <view wx:for="{{items}}" wx:key="id" class="review-item {{!item.included ? 'review-item--excluded' : ''}}">
+      <view wx:for="{{items}}" wx:key="id" id="review-item-{{item.id}}" class="review-item {{!item.included ? 'review-item--excluded' : ''}} {{item.included && item.categorySuggestion && !item.pending && record.status !== 'cancelled' ? 'review-item--attention' : ''}}">
         <view class="review-item__visual">
           <image wx:if="{{item.clothing}}" class="review-item__image" src="{{item.imageUrl}}" data-url="{{item.imageUrl}}" data-asset-id="{{item.clothing.primaryAssetId}}" binderror="onImageError" mode="aspectFit" bindtap="onPreview" />
           <view wx:else class="review-item__removed">已移除</view>
@@ -51,10 +51,14 @@
         </view>
         <view class="review-item__name">{{item.clothing.name || '衣物已移除'}}</view>
         <view class="review-item__category">{{item.clothing.categoryName || '待确认分类'}}</view>
+        <view wx:if="{{item.included && item.categorySuggestion && !item.pending && record.status !== 'cancelled'}}" class="review-item__review">
+          <view class="review-item__review-title">待确认分类</view>
+          <view>建议：{{item.categorySuggestion}}</view>
+        </view>
         <view wx:if="{{item.pending}}" class="review-item__progress">{{item.clothing.processingPhase}}</view>
         <view wx:if="{{item.clothing && !item.pending}}" class="review-item__actions">
-          <view class="review-edit"><t-button class="button-block" t-class="review-link" block variant="text" theme="primary" size="small" disabled="{{busy || confirmLocked}}" data-id="{{item.clothing.id}}" bind:tap="onEdit">编辑 / 补拍</t-button></view>
-          <view wx:if="{{item.retryId && record.status !== 'cancelled'}}" class="review-item-retry"><t-button class="button-block" t-class="review-link" block variant="text" theme="primary" size="small" disabled="{{busy || confirmLocked}}" data-id="{{item.retryId}}" bind:tap="onRetryJob">重试</t-button></view>
+          <view class="review-edit"><t-button class="button-block" t-class="review-link" block variant="text" theme="primary" size="small" disabled="{{busy || confirmLocked}}" data-id="{{item.clothing.id}}" bind:tap="onEdit">{{item.included && item.categorySuggestion && record.status !== 'cancelled' ? '确认分类' : '编辑 / 补拍'}}</t-button></view>
+          <view wx:if="{{item.retryId && record.status !== 'cancelled'}}" class="review-item-retry"><t-button class="button-block" t-class="review-link" block variant="text" theme="primary" size="small" disabled="{{busy || confirmLocked}}" data-id="{{item.retryId}}" bind:tap="onRetryJob">{{item.providerPending ? '重新处理' : '重试'}}</t-button></view>
         </view>
         <view wx:if="{{item.message}}" class="error review-item__error">{{item.message}}</view>
       </view>
